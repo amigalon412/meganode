@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 const BOX = `╔══════════════════════════════════════════════════════════════════╗
-║  WIRE · THE COMMAND LAYER FOR FINANCE · wirebot.trade            ║
+║  WIRE · THE COMMAND LAYER FOR FINANCE · wirebot.trade             ║
 ╚══════════════════════════════════════════════════════════════════╝`;
 
 export function Footer() {
