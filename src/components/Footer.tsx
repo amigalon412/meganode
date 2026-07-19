@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 const BOX = `╔══════════════════════════════════════════════════════════════════╗
-║  WIRE · THE COMMAND LAYER FOR FINANCE · wirebot.trade             ║
+║  BLUR · THE COMMAND LAYER FOR FINANCE · blurbot.trade             ║
 ╚══════════════════════════════════════════════════════════════════╝`;
 
 export function Footer() {
@@ -12,13 +12,13 @@ export function Footer() {
         <div className="flex items-center gap-3">
           <Image
             src="/images/logo.png"
-            alt="WIRE"
+            alt="BLUR"
             width={22}
             height={22}
             className="rounded opacity-50"
           />
           <span className="wire-title text-wire-cyan opacity-50 tracking-widest text-lg">
-            WIRE
+            BLUR
           </span>
         </div>
         <div className="flex items-center gap-6 font-mono text-xs text-wire-muted tracking-widest">
@@ -32,7 +32,7 @@ export function Footer() {
             DOCS
           </a>
           <a
-            href="https://x.com/wirebotRH"
+            href="https://x.com/blurbotRH"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-wire-cyan transition-colors"

@@ -19,17 +19,17 @@ const shareTechMono = Share_Tech_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WIRE — The command layer for finance",
+  title: "BLUR — The command layer for finance",
   description:
-    "Buy, sell, and send tokenized stocks on Robinhood Chain. Just tweet @wirebotRH.",
+    "Buy, sell, and send tokenized stocks on Robinhood Chain. Just tweet @blurbotRH.",
   openGraph: {
-    title: "WIRE",
+    title: "BLUR",
     description: "Trade tokenized stocks by tweeting. No app. No wallet setup.",
     images: ["/seo/banner.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "WIRE",
+    title: "BLUR",
     description: "Trade tokenized stocks by tweeting. No app. No wallet setup.",
     images: ["/seo/banner.png"],
   },

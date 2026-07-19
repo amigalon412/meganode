@@ -14,7 +14,7 @@ const cards: AboutCard[] = [
   },
   {
     title: "TOKENS & ETH",
-    body: "Native ETH and community tokens (like $WIRE) routed through WETH liquidity.",
+    body: "Native ETH and community tokens (like $BLUR) routed through WETH liquidity.",
   },
   {
     title: "SEND BY @HANDLE",
@@ -34,12 +34,12 @@ export function AboutSection() {
   return (
     <section id="about" className="border-b border-wire-border px-8 py-20 scroll-mt-16">
       <div className="max-w-5xl mx-auto">
-        <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">{"// WHAT IS WIRE"}</div>
+        <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">{"// WHAT IS BLUR"}</div>
         <div className="font-mono text-[10px] text-wire-border mb-10">╠══════════════════════════════════════════════════════════════╣</div>
         <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-6 leading-snug md:leading-9">Trade the market from your timeline.</h2>
         <p className="font-mono text-sm text-wire-muted leading-relaxed max-w-3xl mb-10">
-          WIRE is a non-custodial trading bot that lives on X. Mention{" "}
-          <span className="text-wire-cyan">@wirebotRH</span> in plain language and it executes real
+          BLUR is a non-custodial trading bot that lives on X. Mention{" "}
+          <span className="text-wire-cyan">@blurbotRH</span> in plain language and it executes real
           on-chain trades on Robinhood Chain — tokenized stocks & ETFs, index baskets, native ETH
           and community tokens. A language model only reads your intent; every transaction is
           signed by deterministic code inside your own wallet, with hard spending limits. You can

@@ -5,27 +5,27 @@ interface Command {
 
 const commands: Command[] = [
   {
-    command: "@wirebotRH buy $50 NVDA",
+    command: "@blurbotRH buy $50 NVDA",
     description: "Buy any tokenized stock or ETF with your USDG balance",
   },
   {
-    command: "@wirebotRH sell all TSLA",
+    command: "@blurbotRH sell all TSLA",
     description: "Liquidate a full position — or a fixed dollar amount",
   },
   {
-    command: "@wirebotRH buy $20 MAG7",
+    command: "@blurbotRH buy $20 MAG7",
     description: "Buy an index basket in one tap (MAG7, AI6…)",
   },
   {
-    command: "@wirebotRH send @handle $25 AAPL",
+    command: "@blurbotRH send @handle $25 AAPL",
     description: "Send any asset to an X handle — even non-users",
   },
   {
-    command: "@wirebotRH buy $10 WIRE",
+    command: "@blurbotRH buy $10 BLUR",
     description: "Trade community tokens & native ETH via WETH pools",
   },
   {
-    command: "@wirebotRH drop $5 NVDA to first 10",
+    command: "@blurbotRH drop $5 NVDA to first 10",
     description: "Airdrop to the first N unique repliers — 1 per person",
   },
 ];

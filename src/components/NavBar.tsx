@@ -7,13 +7,13 @@ export function NavBar() {
       <div className="flex items-center gap-3">
         <Image
           src="/images/logo.png"
-          alt="WIRE"
+          alt="BLUR"
           width={32}
           height={32}
           className="rounded opacity-90"
         />
         <span className="wire-title text-2xl text-wire-cyan glow-cyan tracking-widest">
-          WIRE
+          BLUR
         </span>
       </div>
       <div className="hidden lg:flex items-center justify-center gap-8 font-mono text-xs tracking-widest text-wire-cyan/80">
@@ -32,10 +32,10 @@ export function NavBar() {
       </div>
       <div className="flex items-center justify-end gap-2 sm:gap-3">
         <a
-          href="https://x.com/wirebotRH"
+          href="https://x.com/blurbotRH"
           target="_blank"
           rel="noopener noreferrer"
-          title="@wirebotRH on X"
+          title="@blurbotRH on X"
           className="flex items-center justify-center border border-wire-cyan text-wire-cyan glow-box-cyan p-2 hover:bg-wire-cyan hover:text-black transition-all"
         >
           <XIcon width={15} height={15} className="glow-svg-cyan" />
@@ -46,7 +46,7 @@ export function NavBar() {
           rel="noopener noreferrer"
           className="flex items-center gap-2 border border-wire-cyan text-wire-cyan glow-cyan font-mono text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black transition-all tracking-widest whitespace-nowrap"
         >
-          BUY $WIRE
+          BUY $BLUR
         </a>
         <button className="flex items-center gap-2 border border-wire-cyan text-wire-cyan font-mono text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black transition-all disabled:opacity-30 tracking-widest whitespace-nowrap">
           CONNECT <XIcon width={15} height={15} />

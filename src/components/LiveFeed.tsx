@@ -89,7 +89,7 @@ export function LiveFeed() {
           <span className="w-2.5 h-2.5 bg-yellow-500 rounded-full shrink-0"></span>
           <span className="w-2.5 h-2.5 bg-wire-green rounded-full shrink-0"></span>
           <span className="text-wire-muted text-xs font-mono ml-3 tracking-widest truncate">
-            root@wirebot:~$ tail -f /var/log/wire/transactions
+            root@blurbot:~$ tail -f /var/log/blur/transactions
           </span>
         </div>
         <div className="flex items-center gap-5 shrink-0">

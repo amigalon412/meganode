@@ -4,19 +4,19 @@ import { useEffect, useState } from "react";
 import { XIcon } from "@/components/icons";
 
 const ASCII = `
-██╗    ██╗██╗██████╗ ███████╗
-██║    ██║██║██╔══██╗██╔════╝
-██║ █╗ ██║██║██████╔╝█████╗  
-██║███╗██║██║██╔══██╗██╔══╝  
-╚███╔███╔╝██║██║  ██║███████╗
- ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝
+██████╗ ██╗     ██╗   ██╗██████╗ 
+██╔══██╗██║     ██║   ██║██╔══██╗
+██████╔╝██║     ██║   ██║██████╔╝
+██╔══██╗██║     ██║   ██║██╔══██╗
+██████╔╝███████╗╚██████╔╝██║  ██║
+╚═════╝ ╚══════╝ ╚═════╝ ╚═╝  ╚═╝
 `.trim();
 
 const BOOT = [
   { delay: 0, text: "> SYSTEM BOOT  .............. [OK]" },
   { delay: 700, text: "> CHAIN LINK   .............. [OK]" },
   { delay: 1400, text: "> WALLET LAYER .............. [OK]" },
-  { delay: 2100, text: "> LISTENING ON @wirebotRH ....... [ACTIVE]" },
+  { delay: 2100, text: "> LISTENING ON @blurbotRH ....... [ACTIVE]" },
 ];
 
 export function HeroSection() {
@@ -72,7 +72,7 @@ export function HeroSection() {
         )}
       </div>
       <div className="space-y-3 flex flex-col items-center">
-        <button className="flex items-center gap-3 bg-wire-cyan text-black font-mono font-bold text-base px-10 py-4 hover:opacity-90 hover:shadow-[0_0_40px_rgba(0,255,255,0.35)] transition-all disabled:opacity-30 tracking-widest">
+        <button className="flex items-center gap-3 bg-wire-cyan text-black font-mono font-bold text-base px-10 py-4 hover:opacity-90 hover:shadow-[0_0_40px_rgba(214,254,81,0.35)] transition-all disabled:opacity-30 tracking-widest">
           SIGN IN WITH <XIcon width={15} height={15} /> →
         </button>
         <div className="font-mono text-xs text-wire-muted">

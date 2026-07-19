@@ -8,7 +8,7 @@ const STEPS: GuideStep[] = [
   {
     num: "01",
     title: "SIGN IN WITH X",
-    body: "Connect your X account. WIRE instantly generates a self-custodial wallet tied to your handle — no seed phrase, no setup.",
+    body: "Connect your X account. BLUR instantly generates a self-custodial wallet tied to your handle — no seed phrase, no setup.",
   },
   {
     num: "02",
@@ -18,7 +18,7 @@ const STEPS: GuideStep[] = [
   {
     num: "03",
     title: "TWEET A COMMAND",
-    body: "Mention @wirebotRH anywhere in a post: “buy $50 NVDA”, “sell all TSLA”, “send @friend $25 AAPL”, or “buy $20 MAG7”.",
+    body: "Mention @blurbotRH anywhere in a post: “buy $50 NVDA”, “sell all TSLA”, “send @friend $25 AAPL”, or “buy $20 MAG7”.",
   },
   {
     num: "04",
