@@ -1,20 +1,42 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { VT323, Share_Tech_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const vt323 = VT323({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-vt323",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const shareTechMono = Share_Tech_Mono({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-share-tech-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Website Clone",
-  description: "Pixel-perfect website clone",
+  title: "WIRE — The command layer for finance",
+  description:
+    "Buy, sell, and send tokenized stocks on Robinhood Chain. Just tweet @wirebotRH.",
+  openGraph: {
+    title: "WIRE",
+    description: "Trade tokenized stocks by tweeting. No app. No wallet setup.",
+    images: ["/seo/banner.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WIRE",
+    description: "Trade tokenized stocks by tweeting. No app. No wallet setup.",
+    images: ["/seo/banner.png"],
+  },
+  icons: {
+    shortcut: "/seo/favicon-32.png",
+    icon: [
+      { url: "/seo/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/seo/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/seo/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -25,9 +47,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${vt323.variable} ${shareTechMono.variable} dark`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
