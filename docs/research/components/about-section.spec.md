@@ -33,6 +33,7 @@
 6. **YOUR KEYS** — `MPC-backed wallet, exportable private key, non-custodial by design.`
 
 ## Notes
+- **v4 cascade fix:** the original (Tailwind v3) computes h2 line-height = 36px at ≥768px because `md:text-3xl`'s line-height beats `leading-snug` in v3's cascade; in Tailwind v4 `leading-snug` always wins via `--tw-leading`. The clone adds `md:leading-9` (36px) to reproduce the original computed value (33px at mobile via leading-snug, 36px at md+).
 - The 1px lines between cards are produced by `gap-px bg-wire-border` on the grid + `bg-black` cells — do not use real borders.
 - Divider line is exactly 62 `═` chars between `╠` and `╣`.
 

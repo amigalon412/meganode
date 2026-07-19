@@ -48,7 +48,7 @@ export function HeroSection() {
       <div className="font-mono text-base md:text-lg text-wire-muted mb-4 tracking-[0.25em] flex items-center gap-2 justify-center">
         <span className="text-wire-cyan">▶</span>THE COMMAND LAYER FOR FINANCE
       </div>
-      <p className="font-mono text-xs md:text-sm text-wire-muted max-w-xl mb-10 leading-relaxed">
+      <p className="font-mono text-xs md:text-sm text-wire-muted max-w-xl mb-10 leading-relaxed md:leading-5">
         Buy, sell, send and airdrop tokenized stocks, ETFs, index baskets and
         tokens on Robinhood Chain — by posting a tweet. No app. No seed phrase.
         Your keys, always.

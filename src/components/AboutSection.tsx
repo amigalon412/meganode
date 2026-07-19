@@ -36,7 +36,7 @@ export function AboutSection() {
       <div className="max-w-5xl mx-auto">
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">{"// WHAT IS WIRE"}</div>
         <div className="font-mono text-[10px] text-wire-border mb-10">╠══════════════════════════════════════════════════════════════╣</div>
-        <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-6 leading-snug">Trade the market from your timeline.</h2>
+        <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-6 leading-snug md:leading-9">Trade the market from your timeline.</h2>
         <p className="font-mono text-sm text-wire-muted leading-relaxed max-w-3xl mb-10">
           WIRE is a non-custodial trading bot that lives on X. Mention{" "}
           <span className="text-wire-cyan">@wirebotRH</span> in plain language and it executes real

@@ -70,6 +70,9 @@ Animation: `.animate-marquee` → `marquee 25s linear infinite` (already in glob
 - `XIcon` from `@/components/icons`
 - `"use client"` on HeroSection only.
 
+## v4 cascade fix
+The original (Tailwind v3) computes the hero paragraph line-height as 20px at ≥768px because `md:text-sm`'s bundled line-height beats `leading-relaxed` in v3's cascade; in Tailwind v4 `leading-relaxed` always wins via `--tw-leading`. The clone adds `md:leading-5` to the paragraph to match the original computed values (19.5px at mobile, 20px at md+).
+
 ## Responsive
 - ASCII status box hidden <768px. ASCII logo 10px/14px/18px at base/md/lg. Tagline base/lg text. Paragraph xs/sm.
 
