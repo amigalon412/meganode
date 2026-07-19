@@ -33,7 +33,7 @@ export function HeroSection() {
 
   return (
     <section className="min-h-[78vh] flex flex-col items-center justify-center px-8 py-16 border-b border-wire-border text-center">
-      <div className="font-mono text-[10px] text-wire-muted mb-8 tracking-widest hidden md:block">
+      <div className="font-mono text-[12px] text-wire-muted mb-8 tracking-widest hidden md:block">
         <div>┌──────────────────────────────┐</div>
         <div>│  ROBINHOOD CHAIN · ID: 4663  │</div>
         <div>│  STATUS: ████████████  LIVE  │</div>
