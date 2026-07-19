@@ -14,7 +14,7 @@
   --color-wire-green: #00ff41;
   --color-wire-purple: #bf5fff;
   --color-wire-dim: #003333;
-  --color-wire-muted: #336666;
+  --color-wire-muted: #c8c8c8;
   --color-wire-border: #0a2020;
   --color-wire-card: #030a0a;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -204,7 +204,7 @@
   overflow: hidden;
 }
 .glitch::before {
-  color: #ff00ff;
+  color: var(--cyan);
   clip-path: polygon(0 25%, 100% 25%, 100% 45%, 0 45%);
   animation: glitch-before 3.5s infinite;
 }
