@@ -5,28 +5,28 @@ type AboutCard = {
 
 const cards: AboutCard[] = [
   {
-    title: "STOCKS & ETFS",
-    body: "50+ tokenized equities (NVDA, TSLA, SPY…) settled in USDG via Uniswap v4 pools.",
+    title: "REAL LENDING YIELD",
+    body: "Your USDG earns actual on-chain lending interest — not emissions, not inflationary farm rewards.",
   },
   {
-    title: "INDEX BASKETS",
-    body: "One-tap diversified exposure — MAG7, AI6 and more, minted through the Vimen protocol.",
+    title: "CURATED STOCK BASKET",
+    body: "A slice of your balance grows into tokenized equities (NVDA · SPY · AAPL · TSLA), not random tokens.",
   },
   {
-    title: "TOKENS & ETH",
-    body: "Native ETH and community tokens (like $BLUR) routed through WETH liquidity.",
+    title: "AUTO-REBALANCED",
+    body: "A keeper drifts each vault back to its target split for you — no clicks, no timing the market.",
   },
   {
-    title: "SEND BY @HANDLE",
-    body: "Transfer assets to any X user — even before they sign up. Funds wait in their wallet.",
+    title: "NON-CUSTODIAL",
+    body: "The vault never holds your keys. Positions are yours; withdrawals are permissionless.",
   },
   {
-    title: "AIRDROPS",
-    body: "Reward your replies: “drop $5 of NVDA to first 10 replies”. One claim per person.",
+    title: "IN-KIND REDEMPTION",
+    body: "Redeem anytime and get your pro-rata slice of the basket back — even when markets are closed.",
   },
   {
-    title: "YOUR KEYS",
-    body: "MPC-backed wallet, exportable private key, non-custodial by design.",
+    title: "HONEST FEE",
+    body: "One 5% fee, designed to touch only gains above a high-water mark — never your deposit.",
   },
 ];
 
@@ -36,14 +36,13 @@ export function AboutSection() {
       <div className="max-w-5xl mx-auto">
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">{"// WHAT IS BLUR"}</div>
         <div className="font-mono text-[10px] text-wire-border mb-10">╠══════════════════════════════════════════════════════════════╣</div>
-        <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-6 leading-snug md:leading-9">Trade the market from your timeline.</h2>
+        <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-6 leading-snug md:leading-9">Your idle stablecoin, working.</h2>
         <p className="font-mono text-sm text-wire-muted leading-relaxed max-w-3xl mb-10">
-          BLUR is a non-custodial trading bot that lives on X. Mention{" "}
-          <span className="text-wire-cyan">@blurbotRH</span> in plain language and it executes real
-          on-chain trades on Robinhood Chain — tokenized stocks & ETFs, index baskets, native ETH
-          and community tokens. A language model only reads your intent; every transaction is
-          signed by deterministic code inside your own wallet, with hard spending limits. You can
-          export your private key any time and walk away.
+          BLUR is a non-custodial auto-yield vault on Robinhood Chain. Deposit{" "}
+          <span className="text-wire-cyan">USDG</span> once and it earns real lending yield, grows a
+          slice into a curated basket of tokenized stocks, and rebalances itself toward your target
+          split. An off-chain keeper harvests and rebalances, but on-chain guards cap its reach —
+          designed so a compromised keeper can never touch your principal. Redeem in-kind, anytime.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-wire-border">
           {cards.map((card) => (

@@ -9,20 +9,20 @@ const cards: SecurityCard[] = [
   {
     tag: "[KEY]",
     num: "01",
-    title: "YOUR KEYS, ALWAYS",
-    body: "Export your raw private key from the dashboard. No permission needed. Walk away to any wallet at any time.",
+    title: "NON-CUSTODIAL BY DESIGN",
+    body: "Every position is yours. Withdrawals are permissionless and in-kind, so you get your pro-rata slice back even when markets are closed.",
   },
   {
     tag: "[BOT]",
     num: "02",
-    title: "BOT NEVER HOLDS KEYS",
-    body: "The language model only parses intent into JSON. All execution is deterministic code with per-tx spending limits.",
+    title: "AUTOMATED, BOUNDED",
+    body: "An off-chain keeper harvests, rebalances and DCAs, but on-chain guards cap its reach. Designed so a compromised keeper can't touch your principal.",
   },
   {
-    tag: "[SND]",
+    tag: "[FEE]",
     num: "03",
-    title: "PRE-GENERATED WALLETS",
-    body: "Send to @anyone — even if they’ve never heard of us. They log in with X and the funds are already there.",
+    title: "REAL YIELD, HONEST FEE",
+    body: "Yield is real lending interest, not emissions. The 5% fee is designed to apply only to gains above a high-water mark, never your deposit.",
   },
 ];
 
@@ -31,11 +31,14 @@ export function SecuritySection() {
     <section className="border-b border-wire-border px-8 py-20">
       <div className="max-w-5xl mx-auto">
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">
-          {"// SECURITY MODEL"}
+          {"// WHY BLUR"}
         </div>
-        <div className="font-mono text-[10px] text-wire-border mb-8">
+        <div className="font-mono text-[10px] text-wire-border mb-6">
           ╠══════════════════════════════════════════════════════════════╣
         </div>
+        <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-8 leading-snug md:leading-9">
+          Built to be trusted.
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-wire-border">
           {cards.map((card) => (
             <div

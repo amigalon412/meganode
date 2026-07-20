@@ -19,18 +19,20 @@ const shareTechMono = Share_Tech_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BLUR — The command layer for finance",
+  title: "BLUR — Grow your bag, automatically",
   description:
-    "Buy, sell, and send tokenized stocks on Robinhood Chain. Just tweet @blurbotRH.",
+    "A non-custodial auto-yield vault on Robinhood Chain. Deposit stablecoin, earn real yield, grow into tokenized stocks — auto-rebalanced.",
   openGraph: {
     title: "BLUR",
-    description: "Trade tokenized stocks by tweeting. No app. No wallet setup.",
+    description:
+      "Deposit stablecoin. Earn real yield. Grow into tokenized stocks, auto-rebalanced. Non-custodial.",
     images: ["/seo/banner.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "BLUR",
-    description: "Trade tokenized stocks by tweeting. No app. No wallet setup.",
+    description:
+      "Deposit stablecoin. Earn real yield. Grow into tokenized stocks, auto-rebalanced. Non-custodial.",
     images: ["/seo/banner.png"],
   },
   icons: {

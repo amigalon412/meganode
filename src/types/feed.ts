@@ -2,10 +2,10 @@ export interface FeedItem {
   id: number;
   action: string;
   actor: string;
-  verb: string;
-  amountLabel: string;
-  ticker: string;
-  counterparty: string | null;
+  system: boolean;
+  pre: string;
+  asset: string;
+  post: string;
   txShort: string;
   txUrl: string;
   tweetUrl: string | null;
@@ -14,7 +14,7 @@ export interface FeedItem {
 
 export interface FeedStats {
   total: number;
-  volumeUsd: number;
+  tvlUsd: number;
 }
 
 export interface FeedResponse {

@@ -11,10 +11,11 @@ interface ActionMeta {
 }
 
 const ACTION_MAP: Record<string, ActionMeta> = {
-  buy: { label: "BUY", cls: "text-wire-green glow-green", arrow: "▲" },
-  sell: { label: "SELL", cls: "text-wire-purple glow-purple", arrow: "▼" },
-  send: { label: "SEND", cls: "text-wire-cyan glow-cyan", arrow: "→" },
-  drop: { label: "DROP", cls: "text-wire-green glow-green", arrow: "🎁" },
+  deposit: { label: "DEPOSIT", cls: "text-wire-green glow-green", arrow: "▲" },
+  redeem: { label: "REDEEM", cls: "text-wire-purple glow-purple", arrow: "▼" },
+  rebalance: { label: "REBAL", cls: "text-wire-cyan glow-cyan", arrow: "⇄" },
+  harvest: { label: "HARVEST", cls: "text-wire-green glow-green", arrow: "⟳" },
+  buyback: { label: "BUYBACK", cls: "text-wire-cyan glow-cyan", arrow: "◎" },
 };
 
 function actionMeta(action: string): ActionMeta {
@@ -37,7 +38,7 @@ function timeAgo(ts: number): string {
 
 export function LiveFeed() {
   const [items, setItems] = useState<FeedItem[]>([]);
-  const [stats, setStats] = useState<FeedStats>({ total: 0, volumeUsd: 0 });
+  const [stats, setStats] = useState<FeedStats>({ total: 0, tvlUsd: 0 });
   const [loaded, setLoaded] = useState(false);
   const [highlight, setHighlight] = useState<Set<number>>(new Set());
   const [, setTick] = useState(0);
@@ -89,13 +90,13 @@ export function LiveFeed() {
           <span className="w-2.5 h-2.5 bg-yellow-500 rounded-full shrink-0"></span>
           <span className="w-2.5 h-2.5 bg-wire-green rounded-full shrink-0"></span>
           <span className="text-wire-muted text-xs font-mono ml-3 tracking-widest truncate">
-            root@blurbot:~$ tail -f /var/log/blur/transactions
+            root@blurvault:~$ tail -f /var/log/blur/vault-activity
           </span>
         </div>
         <div className="flex items-center gap-5 shrink-0">
           <span className="hidden md:inline text-wire-muted text-xs font-mono tracking-widest">
-            {stats.total.toLocaleString()} TX · $
-            {Math.round(stats.volumeUsd).toLocaleString()} VOL
+            {stats.total.toLocaleString()} ACTIONS · $
+            {Math.round(stats.tvlUsd).toLocaleString()} TVL
           </span>
           <span className="text-wire-cyan text-xs font-mono flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-wire-cyan animate-blink"></span>{" "}
@@ -107,7 +108,7 @@ export function LiveFeed() {
         <div className="px-6 py-4 font-mono text-xs md:text-sm max-h-[440px] overflow-y-auto">
           {!loaded || items.length === 0 ? (
             <div className="text-wire-muted py-8 text-center">
-              <span className="cursor">CONNECTING TO LEDGER</span>
+              <span className="cursor">CONNECTING TO VAULT LEDGER</span>
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -123,40 +124,26 @@ export function LiveFeed() {
                     <span className="text-wire-border shrink-0 w-9 text-right tabular-nums">
                       {timeAgo(item.ts)}
                     </span>
-                    <span className={`shrink-0 w-[70px] ${action.cls}`}>
+                    <span className={`shrink-0 w-[76px] ${action.cls}`}>
                       {action.arrow} {action.label}
                     </span>
                     <span className="flex-1 min-w-0 truncate">
-                      <a
-                        href={`https://x.com/${item.actor}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-wire-cyan hover:glow-cyan hover:underline"
-                      >
-                        @{item.actor}
-                      </a>
-                      <span className="text-wire-muted">
-                        {" "}
-                        {item.verb}{" "}
-                      </span>
-                      <span className="text-wire-cyan">
-                        {item.amountLabel}{" "}
-                      </span>
-                      <span className="text-wire-cyan glow-cyan">
-                        ${item.ticker}
-                      </span>
-                      {item.counterparty && (
-                        <>
-                          <span className="text-wire-muted"> → </span>
-                          <a
-                            href={`https://x.com/${item.counterparty}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-wire-cyan hover:glow-cyan hover:underline"
-                          >
-                            @{item.counterparty}
-                          </a>
-                        </>
+                      {item.system ? (
+                        <span className="text-wire-purple">keeper</span>
+                      ) : (
+                        <a
+                          href={`https://x.com/${item.actor}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-wire-cyan hover:glow-cyan hover:underline"
+                        >
+                          @{item.actor}
+                        </a>
+                      )}
+                      <span className="text-wire-muted"> {item.pre} </span>
+                      <span className="text-wire-cyan glow-cyan">{item.asset}</span>
+                      {item.post && (
+                        <span className="text-wire-muted"> {item.post}</span>
                       )}
                     </span>
                     <div className="flex items-center gap-3 shrink-0">
@@ -166,7 +153,7 @@ export function LiveFeed() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-wire-border hover:text-wire-cyan hidden sm:inline"
-                          title="View tweet on X"
+                          title="View post on X"
                         >
                           <XIcon
                             width={12}

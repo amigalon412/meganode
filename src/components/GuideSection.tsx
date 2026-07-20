@@ -7,23 +7,23 @@ type GuideStep = {
 const STEPS: GuideStep[] = [
   {
     num: "01",
-    title: "SIGN IN WITH X",
-    body: "Connect your X account. BLUR instantly generates a self-custodial wallet tied to your handle — no seed phrase, no setup.",
+    title: "YOU DEPOSIT",
+    body: "USDG in. Your money starts earning on-chain lending yield the moment it lands — no lockup, no waiting.",
   },
   {
     num: "02",
-    title: "DEPOSIT",
-    body: "Fund your wallet from the dashboard. Send USDG for stocks & baskets, and a little ETH for gas (and for token/ETH trades).",
+    title: "IT GROWS",
+    body: "A keeper rebalances a slice into the tokenized-stock basket toward your target split. No clicks, no timing.",
   },
   {
     num: "03",
-    title: "TWEET A COMMAND",
-    body: "Mention @blurbotRH anywhere in a post: “buy $50 NVDA”, “sell all TSLA”, “send @friend $25 AAPL”, or “buy $20 MAG7”.",
+    title: "YOU KEEP CONTROL",
+    body: "Redeem anytime, in-kind. The vault never holds your keys — withdrawals are permissionless and pro-rata.",
   },
   {
     num: "04",
-    title: "GET CONFIRMED",
-    body: "The bot replies with the result and a Blockscout link. Everything shows up in the live feed above in real time.",
+    title: "$BLUR TIGHTENS",
+    body: "5% of yield buys back $BLUR off the market and fuels incentives. Real usage feeds the token — not hype.",
   },
 ];
 
@@ -31,12 +31,15 @@ const DIVIDER = `╠${"═".repeat(62)}╣`;
 
 export function GuideSection() {
   return (
-    <section id="guide" className="border-b border-wire-border px-8 py-20 scroll-mt-16">
+    <section id="flywheel" className="border-b border-wire-border px-8 py-20 scroll-mt-16">
       <div className="max-w-5xl mx-auto">
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">
-          {"// QUICK START"}
+          {"// THE FLYWHEEL"}
         </div>
-        <div className="font-mono text-[10px] text-wire-border mb-10">{DIVIDER}</div>
+        <div className="font-mono text-[10px] text-wire-border mb-6">{DIVIDER}</div>
+        <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-10 leading-snug md:leading-9">
+          Set it once. It compounds itself.
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-wire-border">
           {STEPS.map((step) => (
             <div key={step.num} className="bg-black p-8 hover:bg-wire-card transition-colors">

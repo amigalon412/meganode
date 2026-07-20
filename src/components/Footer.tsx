@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 const BOX = `╔══════════════════════════════════════════════════════════════════╗
-║  BLUR · THE COMMAND LAYER FOR FINANCE · blurbot.trade             ║
+║  BLUR · GROW YOUR BAG, AUTOMATICALLY · blur.finance               ║
 ╚══════════════════════════════════════════════════════════════════╝`;
 
 export function Footer() {
@@ -22,11 +22,14 @@ export function Footer() {
           </span>
         </div>
         <div className="flex items-center gap-6 font-mono text-xs text-wire-muted tracking-widest">
-          <a href="#about" className="hover:text-wire-cyan transition-colors">
-            ABOUT
+          <a href="#vaults" className="hover:text-wire-cyan transition-colors">
+            VAULTS
           </a>
-          <a href="#guide" className="hover:text-wire-cyan transition-colors">
-            GUIDE
+          <a href="#flywheel" className="hover:text-wire-cyan transition-colors">
+            HOW IT WORKS
+          </a>
+          <a href="#token" className="hover:text-wire-cyan transition-colors">
+            $BLUR
           </a>
           <a href="/docs" className="hover:text-wire-cyan transition-colors">
             DOCS
@@ -41,8 +44,8 @@ export function Footer() {
           </a>
         </div>
         <div className="font-mono text-[10px] text-wire-muted text-center max-w-xs">
-          BUILT ON ROBINHOOD CHAIN · NOT FINANCIAL ADVICE · STOCK TOKENS NOT
-          AVAILABLE TO US PERSONS
+          NON-CUSTODIAL SOFTWARE ON ROBINHOOD CHAIN · NOT FINANCIAL ADVICE ·
+          STOCK TOKENS NOT AVAILABLE TO US PERSONS
         </div>
       </div>
     </footer>

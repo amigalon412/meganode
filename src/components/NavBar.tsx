@@ -17,11 +17,14 @@ export function NavBar() {
         </span>
       </div>
       <div className="hidden lg:flex items-center justify-center gap-8 font-mono text-xs tracking-widest text-wire-cyan/80">
-        <a href="#about" className="hover:text-wire-cyan hover:glow-cyan transition-all">
-          ABOUT
+        <a href="#vaults" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+          VAULTS
         </a>
-        <a href="#guide" className="hover:text-wire-cyan hover:glow-cyan transition-all">
-          GUIDE
+        <a href="#flywheel" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+          HOW IT WORKS
+        </a>
+        <a href="#token" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+          $BLUR
         </a>
         <a href="#feed" className="hover:text-wire-cyan hover:glow-cyan transition-all">
           LIVE

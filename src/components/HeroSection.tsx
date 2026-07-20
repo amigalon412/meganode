@@ -13,10 +13,10 @@ const ASCII = `
 `.trim();
 
 const BOOT = [
-  { delay: 0, text: "> SYSTEM BOOT  .............. [OK]" },
-  { delay: 700, text: "> CHAIN LINK   .............. [OK]" },
-  { delay: 1400, text: "> WALLET LAYER .............. [OK]" },
-  { delay: 2100, text: "> LISTENING ON @blurbotRH ....... [ACTIVE]" },
+  { delay: 0, text: "> VAULT ENGINE  ............. [OK]" },
+  { delay: 700, text: "> YIELD ORACLE  ............. [OK]" },
+  { delay: 1400, text: "> KEEPER LOOP   ............. [OK]" },
+  { delay: 2100, text: "> REBALANCING @ 60/40 TARGET .... [ACTIVE]" },
 ];
 
 export function HeroSection() {
@@ -35,8 +35,8 @@ export function HeroSection() {
     <section className="min-h-[78vh] flex flex-col items-center justify-center px-8 py-16 border-b border-wire-border text-center">
       <div className="font-mono text-[12px] text-wire-muted mb-8 tracking-widest hidden md:block">
         <div>┌──────────────────────────────┐</div>
-        <div>│  ROBINHOOD CHAIN · ID: 4663  │</div>
-        <div>│  STATUS: ████████████  LIVE  │</div>
+        <div>│  BALANCED VAULT · 60 / 40    │</div>
+        <div>│  SPLIT: ████████░░░░░  AUTO   │</div>
         <div>└──────────────────────────────┘</div>
       </div>
       <pre
@@ -46,12 +46,12 @@ export function HeroSection() {
         {ASCII}
       </pre>
       <div className="font-mono text-base md:text-lg text-wire-muted mb-4 tracking-[0.25em] flex items-center gap-2 justify-center">
-        <span className="text-wire-cyan">▶</span>THE COMMAND LAYER FOR FINANCE
+        <span className="text-wire-cyan">▶</span>GROW YOUR BAG, AUTOMATICALLY
       </div>
       <p className="font-mono text-xs md:text-sm text-wire-muted max-w-xl mb-10 leading-relaxed md:leading-5">
-        Buy, sell, send and airdrop tokenized stocks, ETFs, index baskets and
-        tokens on Robinhood Chain — by posting a tweet. No app. No seed phrase.
-        Your keys, always.
+        Deposit stablecoin. It earns real on-chain lending yield, grows into a
+        curated basket of tokenized stocks, and rebalances itself — on Robinhood
+        Chain. No app. No lockups. You never give up the keys.
       </p>
       <div className="mb-10 space-y-1 text-left inline-block">
         {BOOT.map((e, i) => (
@@ -73,10 +73,10 @@ export function HeroSection() {
       </div>
       <div className="space-y-3 flex flex-col items-center">
         <button className="flex items-center gap-3 bg-wire-cyan text-black font-mono font-bold text-base px-10 py-4 hover:opacity-90 hover:shadow-[0_0_40px_rgba(214,254,81,0.35)] transition-all disabled:opacity-30 tracking-widest">
-          SIGN IN WITH <XIcon width={15} height={15} /> →
+          START GROWING WITH <XIcon width={15} height={15} /> →
         </button>
         <div className="font-mono text-xs text-wire-muted">
-          _ SELF-CUSTODIAL WALLET · GENERATED IN ONE TAP · NO SEED PHRASE
+          _ SELF-CUSTODIAL VAULT · ONE DEPOSIT · REDEEM ANYTIME IN-KIND
         </div>
       </div>
     </section>
