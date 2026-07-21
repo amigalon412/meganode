@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type GuideStep = {
   num: string;
   title: string;
@@ -57,12 +59,12 @@ export function GuideSection() {
           <div className="font-mono text-xs text-wire-muted">
             _ NEED MORE DETAIL? READ THE FULL DOCUMENTATION.
           </div>
-          <a
+          <Link
             href="/docs"
             className="font-mono text-xs text-wire-cyan border border-wire-border px-5 py-2.5 hover:border-wire-cyan hover:glow-cyan transition-all tracking-widest"
           >
             OPEN DOCS →
-          </a>
+          </Link>
         </div>
       </div>
     </section>
