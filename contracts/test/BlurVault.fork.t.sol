@@ -104,33 +104,29 @@ contract BlurVaultForkTest is Test {
         assertGe(priceAfter, priceBefore, "lending vault share price went backwards");
     }
 
-    /// @dev BLOCKER: the venue reports no withdrawable liquidity and no deposit
-    ///      capacity, while still accepting deposits. Until this changes, funds
-    ///      routed there cannot be pulled back out, so `deployIdle` must not be
-    ///      used against it on mainnet.
-    function test_State_LendingVaultIsNotExitable() public {
-        _deposit(alice, 10_000 * ONE);
-        vm.prank(owner);
-        vault.deployIdle();
-
-        assertEq(steak.maxWithdraw(address(vault)), 0, "steakUSDG opened up - revisit exit assumptions");
-        assertEq(steak.maxDeposit(address(vault)), 0, "steakUSDG reports capacity now");
-
-        // Our own limit reporting must reflect that: only the idle buffer is
-        // claimable, and redeem reverts cleanly rather than failing deep inside.
-        assertLt(vault.maxRedeem(alice), vault.balanceOf(alice), "vault overstated what it can pay");
+    /// @dev The venue's ERC-4626 limit views are not usable: both report zero
+    ///      while the corresponding operations execute in full. Pinned here
+    ///      because our vault is built around not trusting them, and that choice
+    ///      must be revisited the day they start telling the truth.
+    function test_State_LendingVaultLimitViewsAreUnreliable() public view {
+        assertEq(steak.maxDeposit(address(vault)), 0, "steakUSDG now reports deposit capacity");
+        assertEq(steak.maxWithdraw(address(vault)), 0, "steakUSDG now reports withdraw capacity");
     }
 
-    /// @dev With nothing deployed, the full cycle works against the real chain.
-    function test_ExitWorksWhileFundsAreIdle() public {
-        _deposit(alice, 10_000 * ONE);
+    /// @dev The whole point: money in, deployed to the real venue, money out.
+    function test_ExitWorksAfterFundsAreDeployed() public {
+        uint256 amount = 10_000 * ONE;
+        _deposit(alice, amount);
+
+        vm.prank(owner);
+        assertGt(vault.deployIdle(), 0, "nothing was put to work");
 
         uint256 balBefore = usdg.balanceOf(alice);
         uint256 shares = vault.balanceOf(alice);
         vm.prank(alice);
         vault.redeem(shares, alice, alice);
 
-        assertApproxEqAbs(usdg.balanceOf(alice) - balBefore, 10_000 * ONE, 2, "did not get the deposit back");
+        assertApproxEqAbs(usdg.balanceOf(alice) - balBefore, amount, 2, "did not get the deposit back");
         assertLe(vault.totalAssets(), 2, "vault should be empty after the only holder leaves");
     }
 

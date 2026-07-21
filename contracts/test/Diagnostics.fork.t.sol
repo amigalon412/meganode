@@ -56,4 +56,29 @@ contract DiagnosticsForkTest is Test {
         vm.roll(block.number + 1);
         console2.log("after roll, price    :", steak.convertToAssets(1e18));
     }
+
+    /// @notice The decisive question: `maxDeposit` reports 0 yet deposits go
+    ///         through, so the reported limits cannot be trusted either way.
+    ///         Does an actual withdrawal work?
+    function test_Diag_CanWeActuallyExit() public {
+        vm.startPrank(depositor);
+        usdg.approve(address(steak), type(uint256).max);
+        uint256 shares = steak.deposit(10_000 * ONE, depositor);
+        vm.stopPrank();
+
+        console2.log("maxWithdraw says     :", steak.maxWithdraw(depositor));
+        console2.log("maxRedeem says       :", steak.maxRedeem(depositor));
+
+        uint256 before = usdg.balanceOf(depositor);
+        vm.prank(depositor);
+        try steak.redeem(shares, depositor, depositor) returns (uint256 out) {
+            console2.log("redeem SUCCEEDED, got:", out);
+            console2.log("delta                :", usdg.balanceOf(depositor) - before);
+        } catch Error(string memory reason) {
+            console2.log("redeem reverted      :", reason);
+        } catch (bytes memory data) {
+            console2.log("redeem reverted, selector:");
+            console2.logBytes(data);
+        }
+    }
 }

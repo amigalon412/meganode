@@ -29,19 +29,47 @@ Fork tests use the official RPC (`rpc.mainnet.chain.robinhood.com`). The
 publicnode endpoint rejects the archive reads forking needs, and Blockscout's
 JSON-RPC shim rejects forge's block parameter format — neither works here.
 
-## Known blockers before this can hold real money
+## Where the yield comes from
 
-1. **The lending venue is not exitable.** `steakUSDG`
-   (`0xBeEff033F34C046626B8D0A041844C5d1A5409dd`) reports
-   `maxWithdraw == 0` and `maxDeposit == 0` while still accepting deposits.
-   Anything sent there currently cannot be pulled back. `deployIdle` must not
-   be pointed at it on mainnet until that changes.
-2. **Its accrual is not characterised.** One probe saw the share price frozen
-   across 90 simulated days; another saw it move at roughly 2.4% annualised.
-   Until the difference is understood, no APR should be quoted anywhere.
-3. **It is not MetaMorpho.** `MORPHO()`, `timelock()`, `supplyQueueLength()` and
-   `fee()` all revert; only `owner()` and `curator()` answer. Whatever it is, it
-   is not the contract shape its name implies, and it has not been read.
+Traced on-chain, end to end:
+
+```
+USDG  ->  steakUSDG                     Morpho VaultV2, $163.8M
+              |                          fees: 0 management, 0 performance
+              |  $9.99M idle
+              v  $153.8M allocated
+          MorphoMarketV1AdapterV2       0x44ABc1d6cCFF2696d98890B92E2157AF242179c2
+              |
+              v
+          Morpho Blue                   0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010
+              |
+    +---------+---------+-----------------+
+    v                   v                 v
+ syrupUSDG            USDe             spUSDG          <- collateral
+ (Maple)             (Ethena)      (Spark Savings)
+ $41.2M supplied   $151.7M supplied  $11.3M supplied
+ 89.2% utilised     89.6% utilised    89.9% utilised
+```
+
+All three markets lend USDG against yield-bearing stablecoin collateral at
+91.5% LLTV. The interest is paid by leveraged loopers borrowing USDG against
+Spark, Ethena and Maple positions. That is the whole of the "real lending
+yield" — no equity exposure anywhere in it.
+
+## Notes on the venue
+
+1. **Its ERC-4626 limit views cannot be trusted.** `maxDeposit` and
+   `maxWithdraw` both return zero while `deposit` and `redeem` execute in full
+   — verified on a fork, both directions, for the whole balance. `_liquid()`
+   deliberately ignores them; see the comment there.
+2. **Accrual is lazy.** Interest lands in `_totalAssets` only when
+   `accrueInterest()` runs, so a probe that interacts first and then warps sees
+   a frozen share price while one that only warps sees it move. Neither reading
+   is an APR. Do not quote a rate off a fork.
+3. **It is VaultV2, not MetaMorpho.** Adapters rather than supply/withdraw
+   queues, which is why every MetaMorpho selector reverts. Exits beyond
+   available liquidity go through `forceDeallocate`, whose penalty is currently
+   1e13 (0.001%).
 4. **No audit.** Nothing here has been reviewed by anyone.
 
 ## What the vault deliberately cannot do
