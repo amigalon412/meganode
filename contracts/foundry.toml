@@ -1,0 +1,23 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc = "0.8.26"
+optimizer = true
+optimizer_runs = 200
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 128
+depth = 64
+
+[rpc_endpoints]
+# Official endpoint. publicnode/allnodes rejects the archive reads forking needs,
+# and Blockscout's JSON-RPC shim rejects forge's block parameter format.
+robinhood = "https://rpc.mainnet.chain.robinhood.com"
