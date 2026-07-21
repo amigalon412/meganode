@@ -18,7 +18,16 @@ const shareTechMono = Share_Tech_Mono({
   adjustFontFallback: false,
 });
 
+// Vercel injects the production domain, so social images resolve correctly
+// without hardcoding it. Override with NEXT_PUBLIC_SITE_URL on a custom domain.
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "BLUR — Grow your bag, automatically",
   description:
     "A non-custodial auto-yield vault on Robinhood Chain. Deposit stablecoin, earn real yield, grow into tokenized stocks — auto-rebalanced.",
