@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { XIcon } from "@/components/icons";
 
 const ASCII = `
 ██████╗ ██╗     ██╗   ██╗██████╗ 
@@ -51,7 +50,8 @@ export function HeroSection() {
       <p className="font-mono text-xs md:text-sm text-wire-muted max-w-xl mb-10 leading-relaxed md:leading-5">
         Deposit stablecoin. It earns real on-chain lending yield, grows into a
         curated basket of tokenized stocks, and rebalances itself — on Robinhood
-        Chain. No app. No lockups. You never give up the keys.
+        Chain. No app. No lockups. Your funds sit at your own address — the
+        protocol can never move them.
       </p>
       <div className="mb-10 space-y-1 text-left inline-block">
         {BOOT.map((e, i) => (
@@ -72,9 +72,12 @@ export function HeroSection() {
         )}
       </div>
       <div className="space-y-3 flex flex-col items-center">
-        <button className="flex items-center gap-3 bg-wire-cyan text-black font-mono font-bold text-base px-10 py-4 hover:opacity-90 hover:shadow-[0_0_40px_rgba(214,254,81,0.35)] transition-all disabled:opacity-30 tracking-widest">
-          START GROWING WITH <XIcon width={15} height={15} /> →
-        </button>
+        <a
+          href="#vaults"
+          className="flex items-center gap-3 bg-wire-cyan text-black font-mono font-bold text-base px-10 py-4 hover:opacity-90 hover:shadow-[0_0_40px_rgba(214,254,81,0.35)] transition-all tracking-widest"
+        >
+          START GROWING →
+        </a>
         <div className="font-mono text-xs text-wire-muted">
           _ SELF-CUSTODIAL VAULT · ONE DEPOSIT · REDEEM ANYTIME IN-KIND
         </div>

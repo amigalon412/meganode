@@ -18,7 +18,7 @@ const STEPS: GuideStep[] = [
   {
     num: "03",
     title: "YOU KEEP CONTROL",
-    body: "Redeem anytime, in-kind. The vault never holds your keys — withdrawals are permissionless and pro-rata.",
+    body: "Redeem anytime, in-kind. Withdrawals are permissionless and pro-rata — nobody can pause or block your exit.",
   },
   {
     num: "04",

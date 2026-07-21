@@ -18,7 +18,7 @@ const cards: AboutCard[] = [
   },
   {
     title: "NON-CUSTODIAL",
-    body: "The vault never holds your keys. Positions are yours; withdrawals are permissionless.",
+    body: "Shares live at your own address. There is no admin path to move, freeze or seize them.",
   },
   {
     title: "IN-KIND REDEMPTION",
