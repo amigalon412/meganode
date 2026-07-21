@@ -8,7 +8,6 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title BlurVault
 /// @notice Tokenized vault that puts idle stablecoin to work in an external
@@ -63,28 +62,20 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     // ---------------------------------------------------------------------
-    // Liquidity-aware limits
+    // On withdrawal limits
     //
-    // The base implementation assumes every asset is available on demand. Ours
-    // are not: the lending vault can be short of liquidity, and reporting a
-    // withdrawable amount we cannot actually pay would only turn a clear
-    // rejection into a confusing revert deeper in the call.
+    // `maxWithdraw` and `maxRedeem` are deliberately left as inherited. An
+    // earlier version capped them by "available liquidity", but that number is
+    // not knowable here: the venue's own `maxWithdraw` reports zero while
+    // executing full redemptions, so the only figure we can compute is the
+    // value of our position — which is exactly what `totalAssets()` already is.
+    // The cap was therefore identical to the base behaviour and never bound,
+    // while its comment claimed a protection that did not exist.
+    //
+    // A real shortfall at the venue surfaces as a revert inside `_withdraw`.
+    // That is the honest failure mode: we cannot know a payout is impossible
+    // until we attempt it.
     // ---------------------------------------------------------------------
-
-    function maxWithdraw(address owner) public view override returns (uint256) {
-        uint256 owned = super.maxWithdraw(owner);
-        uint256 liquid = _liquid();
-        return owned < liquid ? owned : liquid;
-    }
-
-    function maxRedeem(address owner) public view override returns (uint256) {
-        uint256 owned = super.maxRedeem(owner);
-        // Round the cap up. Rounding down costs a wei on the way through the
-        // venue's own rounding and would block a holder from redeeming their
-        // last share. The cap exists to catch a real shortfall, not dust.
-        uint256 cap = _convertToShares(_liquid(), Math.Rounding.Ceil);
-        return owned < cap ? owned : cap;
-    }
 
     // ---------------------------------------------------------------------
     // Allocation
@@ -125,21 +116,6 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
 
     function _idle() internal view returns (uint256) {
         return IERC20(asset()).balanceOf(address(this));
-    }
-
-    /// @dev What the vault could pay out right now: idle plus the value of our
-    ///      position in the lending vault.
-    ///
-    ///      Deliberately does NOT use `yieldVault.maxWithdraw`. The venue we
-    ///      target (Morpho VaultV2) reports zero for both `maxWithdraw` and
-    ///      `maxDeposit` while happily executing deposits and redemptions of the
-    ///      full amount — verified on a fork. Trusting that view would make this
-    ///      vault refuse every legitimate exit the moment funds were deployed.
-    ///      A genuine shortfall at the venue instead surfaces as a revert inside
-    ///      `_withdraw`, which is the honest failure: we do not know a payout is
-    ///      impossible until we try it.
-    function _liquid() internal view returns (uint256) {
-        return _idle() + yieldVault.convertToAssets(yieldVault.balanceOf(address(this)));
     }
 
     /// @dev Top up idle from the lending vault before paying an exit.
