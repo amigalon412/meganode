@@ -40,16 +40,21 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Where fee shares are minted.
     address public feeRecipient;
 
+    /// @notice Contract allowed to run automation. Zero disables it.
+    address public guard;
+
     event Deployed(uint256 assets);
     event Recalled(uint256 assets);
     event BufferUpdated(uint16 bufferBps);
     event FeeAccrued(uint256 feeAssets, uint256 feeShares, uint256 newHighWaterMark);
     event FeeRecipientUpdated(address recipient);
+    event GuardUpdated(address guard);
 
     error AssetMismatch();
     error BufferTooHigh();
     error FeeTooHigh();
     error ZeroFeeRecipient();
+    error NotAutomation();
 
     constructor(
         IERC20 asset_,
@@ -185,17 +190,44 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     // ---------------------------------------------------------------------
 
     /// @notice Move idle assets above the buffer into the lending vault.
-    /// @dev Owner-only for now. Stage 3 moves this behind KeeperGuard so an
-    ///      automated caller can run it under explicit on-chain limits.
-    function deployIdle() external onlyOwner returns (uint256 deployed) {
+    function deployIdle() external returns (uint256) {
+        return _deployIdle(type(uint256).max);
+    }
+
+    /// @notice Same, but never moving more than `maxAssets` in one call.
+    /// @dev The bounded form exists so KeeperGuard can enforce a size cap. A
+    ///      cap is only meaningful if the caller cannot ask for everything.
+    function deployIdle(uint256 maxAssets) external returns (uint256) {
+        return _deployIdle(maxAssets);
+    }
+
+    function _deployIdle(uint256 maxAssets) internal returns (uint256 deployed) {
+        _requireAutomation();
+
         uint256 idle = _idle();
         uint256 target = (totalAssets() * bufferBps) / BPS;
         if (idle <= target) return 0;
 
         deployed = idle - target;
+        if (deployed > maxAssets) deployed = maxAssets;
+        if (deployed == 0) return 0;
+
         IERC20(asset()).forceApprove(address(yieldVault), deployed);
         yieldVault.deposit(deployed, address(this));
         emit Deployed(deployed);
+    }
+
+    /// @notice Address permitted to run automation alongside the owner.
+    /// @dev Setting it to the zero address turns automation off entirely.
+    function setGuard(address newGuard) external onlyOwner {
+        guard = newGuard;
+        emit GuardUpdated(newGuard);
+    }
+
+    /// @dev Automation may allocate. It may not unwind, retune or reprice
+    ///      anything — those stay with the owner. See KeeperGuard.
+    function _requireAutomation() internal view {
+        if (msg.sender != owner() && msg.sender != guard) revert NotAutomation();
     }
 
     /// @notice Pull everything back out of the lending vault into idle.

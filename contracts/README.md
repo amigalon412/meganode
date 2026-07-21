@@ -1,9 +1,27 @@
 # BLUR contracts
 
-Stage 1: the lending leg. `BlurVault` is an ERC-4626 vault that takes USDG,
-issues shares, and routes idle balance into an external ERC-4626 lending vault.
-The tokenized-stock leg, the bounded keeper role, fees and buyback are added on
-top of this — `totalAssets()` is the seam they extend.
+The lending leg, complete: `BlurVault` is an ERC-4626 vault that takes USDG,
+issues shares, routes idle balance into an external ERC-4626 lending vault,
+charges a performance fee above a high-water mark, and can be driven by a
+bounded keeper. That is the STEADY strategy in full — it needs no oracle, no
+DEX and no stock tokens.
+
+Still to come: the tokenized-stock leg and the buyback. `totalAssets()` is the
+seam the second leg extends.
+
+## What a compromised keeper can do
+
+Nothing that matters, and this is asserted rather than claimed. `KeeperGuard`
+holds the keeper allowlist, the vault allowlist, a per-call size cap and a
+cooldown; the vault accepts automation only from the guard. A keeper cannot
+unwind a position, change the buffer, the fee or the fee recipient, take
+ownership, widen its own limits, or reach the vault directly. The worst it can
+do is allocate to the venue as often as the cooldown allows, which moves money
+toward work rather than away from it. See `test_CompromisedKeeperCannotTouchAnythingThatMatters`
+and `test_WorstCaseKeeperGriefCostsOnlyDust`.
+
+Sentinels can halt automation but cannot resume it or run it. Halting is safe
+to hand out; resuming is not.
 
 ## Setup
 
@@ -22,6 +40,9 @@ forge test
 | Suite | Needs network | Purpose |
 |---|---|---|
 | `BlurVault.t.sol` | no | Accounting, attacks, fuzz. The real test of our code. |
+| `Fees.t.sol` | no | Reproduces the published fee table row for row. |
+| `KeeperGuard.t.sol` | no | What automation can and, mostly, cannot do. |
+| `BlurVault.invariant.t.sol` | no | Solvency and supply properties over random call sequences. |
 | `BlurVault.fork.t.sol` | yes | Wiring against live Robinhood Chain, plus assertions that pin the current state of the lending venue. |
 | `Diagnostics.fork.t.sol` | yes | Non-asserting probes. Prints what the venue is actually doing. |
 
