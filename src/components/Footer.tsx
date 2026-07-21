@@ -8,7 +8,7 @@ const BOX = `╔═════════════════════�
 export function Footer() {
   return (
     <footer className="px-8 py-12">
-      <div className="font-mono text-[10px] text-wire-border mb-6 text-center whitespace-pre overflow-x-auto">{BOX}</div>
+      <div className="font-mono text-xs text-wire-cyan/55 mb-6 text-center whitespace-pre overflow-x-auto">{BOX}</div>
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Image

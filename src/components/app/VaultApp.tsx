@@ -37,41 +37,41 @@ export function VaultApp() {
   ];
 
   return (
-    <div className="px-6 md:px-8 py-10 md:py-14">
-      <div className="max-w-6xl mx-auto">
-        <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">
+    <div className="px-6 md:px-10 py-12 md:py-16">
+      <div className="max-w-7xl mx-auto">
+        <div className="font-mono text-sm text-wire-muted tracking-[0.4em] mb-3">
           {"// VAULT TERMINAL"}
         </div>
-        <div className="font-mono text-[10px] text-wire-border mb-6">
+        <div className="font-mono text-xs text-wire-cyan/40 mb-7">
           ╠══════════════════════════════════════════════════════════════╣
         </div>
-        <h1 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-8 leading-snug md:leading-9">
+        <h1 className="font-mono text-3xl md:text-5xl text-wire-cyan glow-cyan mb-10 leading-tight">
           Put your cash to work.
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-wire-border border border-wire-border mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-wire-border border border-wire-border mb-8">
           {stats.map((s) => (
-            <div key={s.label} className="bg-black px-6 py-5">
-              <div className="font-mono text-[10px] text-wire-muted tracking-[0.25em] mb-2">
+            <div key={s.label} className="bg-black px-8 py-7">
+              <div className="font-mono text-xs text-wire-muted tracking-[0.25em] mb-3">
                 {s.label}
               </div>
               <div
                 className={
-                  "font-mono text-2xl mb-1 " +
+                  "font-mono text-3xl md:text-4xl mb-2 " +
                   (s.lit ? "text-wire-cyan glow-cyan" : "text-wire-cyan")
                 }
               >
                 {s.value}
               </div>
-              <div className="font-mono text-[10px] text-wire-muted tracking-[0.2em]">
+              <div className="font-mono text-xs text-wire-muted tracking-[0.2em]">
                 {s.sub}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 items-start">
+          <div className="space-y-8">
             <StrategyPicker selected={selected} onSelect={setSelected} />
 
             <EmptyCard
@@ -88,7 +88,7 @@ export function VaultApp() {
             >
               <button
                 type="button"
-                className="w-full font-mono text-xs text-wire-cyan border border-wire-border py-3 mt-4 tracking-widest hover:border-wire-cyan hover:glow-cyan transition-all"
+                className="w-full font-mono text-sm text-wire-cyan border border-wire-border py-3.5 mt-5 tracking-widest hover:border-wire-cyan hover:glow-cyan transition-all"
               >
                 CONNECT WALLET
               </button>

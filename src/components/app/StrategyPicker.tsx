@@ -15,16 +15,16 @@ interface StrategyPickerProps {
 
 export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
   return (
-    <section className="border border-wire-border bg-black p-6 md:p-8">
+    <section className="border border-wire-border bg-black p-7 md:p-9">
       <div className="flex items-baseline justify-between mb-5">
-        <h2 className="font-mono text-sm text-wire-cyan glow-cyan tracking-[0.3em]">
+        <h2 className="font-mono text-lg text-wire-cyan glow-cyan tracking-[0.3em]">
           SELECT STRATEGY
         </h2>
-        <span className="font-mono text-[10px] text-wire-muted tracking-[0.2em]">
+        <span className="font-mono text-xs text-wire-muted tracking-[0.2em]">
           3 VAULTS
         </span>
       </div>
-      <div className="font-mono text-[10px] text-wire-border mb-5">
+      <div className="font-mono text-xs text-wire-cyan/40 mb-6">
         ╠══════════════════════════════════════════════════════════════╣
       </div>
       <div className="space-y-px bg-wire-border">
@@ -37,17 +37,17 @@ export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
               onClick={() => onSelect(s.id)}
               aria-pressed={active}
               className={
-                "w-full text-left p-5 transition-all group " +
+                "w-full text-left p-7 transition-all group " +
                 (active
                   ? "bg-wire-card outline outline-wire-cyan glow-box-cyan"
                   : "bg-black hover:bg-wire-card")
               }
             >
-              <div className="flex items-baseline justify-between gap-4 mb-2">
-                <span className="flex items-baseline gap-2 min-w-0">
+              <div className="flex items-baseline justify-between gap-4 mb-3">
+                <span className="flex items-baseline gap-2.5 min-w-0">
                   <span
                     className={
-                      "font-mono text-[10px] " +
+                      "font-mono text-sm " +
                       (active ? "text-wire-cyan" : "text-wire-dim")
                     }
                   >
@@ -55,7 +55,7 @@ export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
                   </span>
                   <span
                     className={
-                      "font-mono text-lg tracking-widest transition-all " +
+                      "font-mono text-2xl tracking-widest transition-all " +
                       (active
                         ? "text-wire-cyan glow-cyan"
                         : "text-wire-cyan group-hover:glow-cyan")
@@ -66,14 +66,14 @@ export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
                 </span>
                 <span
                   className={
-                    "font-mono text-xl whitespace-nowrap " +
+                    "font-mono text-3xl whitespace-nowrap " +
                     (active ? "text-wire-cyan glow-cyan" : "text-wire-cyan")
                   }
                 >
                   {s.split}
                 </span>
               </div>
-              <div className="relative h-3 mb-3 font-mono text-xs leading-3 tracking-tighter">
+              <div className="relative h-4 mb-4 font-mono text-base leading-4 tracking-tighter">
                 <div className="absolute inset-0 overflow-hidden whitespace-nowrap text-wire-dim">
                   {BAR_TRACK}
                 </div>
@@ -87,7 +87,7 @@ export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
                   {BAR_FILL}
                 </div>
               </div>
-              <div className="flex items-baseline justify-between gap-4 font-mono text-[10px] tracking-[0.2em]">
+              <div className="flex items-baseline justify-between gap-4 font-mono text-xs tracking-[0.2em]">
                 <span className="text-wire-muted truncate">{s.short}</span>
                 <span className="text-wire-muted whitespace-nowrap">
                   {formatUsd(s.tvlUsd)} TVL
