@@ -89,13 +89,26 @@ contract BlurVaultTest is Test {
         vm.warp(block.timestamp + 180 days);
         yieldVault.accrue();
 
+        uint256 grossGain = vault.totalAssets() - amount;
+
         uint256 before = usdg.balanceOf(alice);
         uint256 shares = vault.balanceOf(alice);
         vm.prank(alice);
         vault.redeem(shares, alice, alice);
 
-        assertGt(usdg.balanceOf(alice) - before, amount, "exited with less than deposited");
-        assertLe(vault.totalAssets(), 2, "dust left behind after the last holder exits");
+        uint256 received = usdg.balanceOf(alice) - before;
+        assertGt(received, amount, "exited with less than deposited");
+
+        // Alice keeps the gain net of the fee; what stays behind is exactly the
+        // treasury's claim on it, not stranded value.
+        assertApproxEqRel(received - amount, (grossGain * 9_500) / 10_000, 1e15, "alice did not keep 95% of the gain");
+        assertApproxEqRel(vault.totalAssets(), (grossGain * 500) / 10_000, 2e16, "leftover is not the fee");
+        assertApproxEqAbs(
+            vault.previewRedeem(vault.balanceOf(vault.feeRecipient())),
+            vault.totalAssets(),
+            2,
+            "leftover is not claimable by the fee recipient"
+        );
     }
 
     function test_SecondDepositorDoesNotDiluteTheFirst() public {
@@ -106,7 +119,11 @@ contract BlurVaultTest is Test {
         vm.warp(block.timestamp + 90 days);
         yieldVault.accrue();
 
+        // Settle the fee first, so this measures dilution by bob and not the
+        // fee that bob's deposit would otherwise have triggered.
+        vault.accrueFee();
         uint256 aliceValueBefore = vault.previewRedeem(vault.balanceOf(alice));
+
         _deposit(bob, 50_000 * ONE);
 
         assertApproxEqAbs(
@@ -115,6 +132,31 @@ contract BlurVaultTest is Test {
             2,
             "bob's deposit moved alice's claim"
         );
+    }
+
+    function test_FeeIsTakenOnceOnTheGain() public {
+        _deposit(alice, 10_000 * ONE);
+        vm.prank(owner);
+        vault.deployIdle();
+
+        vm.warp(block.timestamp + 90 days);
+        yieldVault.accrue();
+
+        uint256 grossGain = vault.totalAssets() - 10_000 * ONE;
+        vault.accrueFee();
+
+        address treasury = vault.feeRecipient();
+        assertApproxEqRel(
+            vault.previewRedeem(vault.balanceOf(treasury)),
+            (grossGain * 500) / 10_000,
+            2e16,
+            "fee is not 5% of the gain"
+        );
+
+        // A second call with no new gain charges nothing.
+        uint256 held = vault.balanceOf(treasury);
+        assertEq(vault.accrueFee(), 0);
+        assertEq(vault.balanceOf(treasury), held, "charged twice");
     }
 
     // ------------------------------------------------------------------

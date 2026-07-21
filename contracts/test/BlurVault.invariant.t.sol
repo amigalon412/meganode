@@ -120,7 +120,7 @@ contract BlurVaultInvariantTest is StdInvariant, Test {
     /// @notice Solvency. Every holder redeeming at once must not ask for more
     ///         than the vault holds. If this breaks, someone is left short.
     function invariant_VaultCanCoverEveryClaim() public view {
-        uint256 claims;
+        uint256 claims = vault.previewRedeem(vault.balanceOf(vault.feeRecipient()));
         uint256 n = handler.actorsLength();
         for (uint256 i; i < n; ++i) {
             claims += vault.previewRedeem(vault.balanceOf(handler.actors(i)));
@@ -129,9 +129,11 @@ contract BlurVaultInvariantTest is StdInvariant, Test {
     }
 
     /// @notice Shares outstanding must equal what holders actually hold. Nobody
-    ///         mints to an address the accounting does not know about.
+    ///         mints to an address the accounting does not know about — the fee
+    ///         recipient included, which is the only other address that can
+    ///         legitimately receive newly minted shares.
     function invariant_SupplyMatchesHoldings() public view {
-        uint256 held;
+        uint256 held = vault.balanceOf(vault.feeRecipient());
         uint256 n = handler.actorsLength();
         for (uint256 i; i < n; ++i) {
             held += vault.balanceOf(handler.actors(i));

@@ -8,6 +8,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @title BlurVault
 /// @notice Tokenized vault that puts idle stablecoin to work in an external
@@ -30,12 +31,25 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Portion of assets kept liquid so small exits need no unwind, in bps.
     uint16 public bufferBps;
 
+    /// @notice Performance fee, charged only on gains above the high-water mark.
+    uint16 public performanceFeeBps;
+
+    /// @notice Highest share price ever reached, in assets per whole share.
+    uint256 public highWaterMark;
+
+    /// @notice Where fee shares are minted.
+    address public feeRecipient;
+
     event Deployed(uint256 assets);
     event Recalled(uint256 assets);
     event BufferUpdated(uint16 bufferBps);
+    event FeeAccrued(uint256 feeAssets, uint256 feeShares, uint256 newHighWaterMark);
+    event FeeRecipientUpdated(address recipient);
 
     error AssetMismatch();
     error BufferTooHigh();
+    error FeeTooHigh();
+    error ZeroFeeRecipient();
 
     constructor(
         IERC20 asset_,
@@ -47,6 +61,9 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         if (yieldVault_.asset() != address(asset_)) revert AssetMismatch();
         yieldVault = yieldVault_;
         bufferBps = 500;
+        performanceFeeBps = 500;
+        feeRecipient = owner_;
+        highWaterMark = _sharePrice();
     }
 
     /// @dev Virtual shares. Without this, the first depositor can donate assets
@@ -76,6 +93,92 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     // That is the honest failure mode: we cannot know a payout is impossible
     // until we attempt it.
     // ---------------------------------------------------------------------
+
+    // ---------------------------------------------------------------------
+    // Performance fee
+    //
+    // Taken as newly minted shares, never by moving assets out. The fee dilutes
+    // holders by its own value; it does not give anyone a withdrawal path. That
+    // is what lets the custody claim stay true with a fee in place.
+    //
+    // The high-water mark tracks the gross share price, so a gain is charged
+    // once and a recovery after a drawdown is free. See docs/fees.
+    // ---------------------------------------------------------------------
+
+    /// @notice Assets backing one whole share.
+    function sharePrice() public view returns (uint256) {
+        return _sharePrice();
+    }
+
+    /// @notice Mint the fee owed on any gain above the high-water mark.
+    /// @dev Permissionless and idempotent. Runs before every change to the share
+    ///      count so nobody can enter or exit at a price that has not been
+    ///      assessed, which would shift the fee onto the holders who stayed.
+    function accrueFee() public returns (uint256 feeShares) {
+        uint256 price = _sharePrice();
+        if (price <= highWaterMark) return 0;
+
+        uint256 supply = totalSupply();
+        uint16 feeBps = performanceFeeBps;
+        if (supply == 0 || feeBps == 0) {
+            highWaterMark = price;
+            return 0;
+        }
+
+        uint256 gain = ((price - highWaterMark) * supply) / 10 ** decimals();
+        uint256 feeAssets = (gain * feeBps) / BPS;
+        uint256 assets = totalAssets();
+
+        if (feeAssets > 0 && assets > feeAssets) {
+            // Shares worth exactly feeAssets once minted, allowing for the
+            // virtual shares and assets the base contract adds.
+            feeShares = Math.mulDiv(
+                feeAssets, supply + 10 ** _decimalsOffset(), assets + 1 - feeAssets, Math.Rounding.Floor
+            );
+            if (feeShares > 0) _mint(feeRecipient, feeShares);
+        }
+
+        highWaterMark = price;
+        emit FeeAccrued(feeAssets, feeShares, price);
+    }
+
+    function setPerformanceFeeBps(uint16 newFeeBps) external onlyOwner {
+        if (newFeeBps > 2_000) revert FeeTooHigh();
+        accrueFee(); // settle everything owed at the old rate first
+        performanceFeeBps = newFeeBps;
+    }
+
+    function setFeeRecipient(address newRecipient) external onlyOwner {
+        if (newRecipient == address(0)) revert ZeroFeeRecipient();
+        feeRecipient = newRecipient;
+        emit FeeRecipientUpdated(newRecipient);
+    }
+
+    // ---------------------------------------------------------------------
+    // Entrypoints
+    //
+    // Every path that changes the share count assesses the fee first.
+    // ---------------------------------------------------------------------
+
+    function deposit(uint256 assets, address receiver) public override returns (uint256) {
+        accrueFee();
+        return super.deposit(assets, receiver);
+    }
+
+    function mint(uint256 shares, address receiver) public override returns (uint256) {
+        accrueFee();
+        return super.mint(shares, receiver);
+    }
+
+    function withdraw(uint256 assets, address receiver, address owner) public override returns (uint256) {
+        accrueFee();
+        return super.withdraw(assets, receiver, owner);
+    }
+
+    function redeem(uint256 shares, address receiver, address owner) public override returns (uint256) {
+        accrueFee();
+        return super.redeem(shares, receiver, owner);
+    }
 
     // ---------------------------------------------------------------------
     // Allocation
@@ -116,6 +219,10 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
 
     function _idle() internal view returns (uint256) {
         return IERC20(asset()).balanceOf(address(this));
+    }
+
+    function _sharePrice() internal view returns (uint256) {
+        return _convertToAssets(10 ** decimals(), Math.Rounding.Floor);
     }
 
     /// @dev Top up idle from the lending vault before paying an exit.
