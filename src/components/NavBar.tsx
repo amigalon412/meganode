@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { XIcon } from "@/components/icons";
 
 export function NavBar() {
@@ -17,21 +18,24 @@ export function NavBar() {
         </span>
       </div>
       <div className="hidden lg:flex items-center justify-center gap-8 font-mono text-xs tracking-widest text-wire-cyan/80">
-        <a href="#vaults" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+        <Link href="/app" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+          APP
+        </Link>
+        <Link href="/#vaults" className="hover:text-wire-cyan hover:glow-cyan transition-all">
           VAULTS
-        </a>
-        <a href="#flywheel" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+        </Link>
+        <Link href="/#flywheel" className="hover:text-wire-cyan hover:glow-cyan transition-all">
           HOW IT WORKS
-        </a>
-        <a href="#token" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+        </Link>
+        <Link href="/#token" className="hover:text-wire-cyan hover:glow-cyan transition-all">
           $BLUR
-        </a>
-        <a href="#feed" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+        </Link>
+        <Link href="/#feed" className="hover:text-wire-cyan hover:glow-cyan transition-all">
           LIVE
-        </a>
-        <a href="/docs" className="hover:text-wire-cyan hover:glow-cyan transition-all">
+        </Link>
+        <Link href="/docs" className="hover:text-wire-cyan hover:glow-cyan transition-all">
           DOCS
-        </a>
+        </Link>
       </div>
       <div className="flex items-center justify-end gap-2 sm:gap-3">
         <a

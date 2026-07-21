@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const BOX = `╔══════════════════════════════════════════════════════════════════╗
 ║  BLUR · GROW YOUR BAG, AUTOMATICALLY · blur.finance               ║
@@ -22,18 +23,21 @@ export function Footer() {
           </span>
         </div>
         <div className="flex items-center gap-6 font-mono text-xs text-wire-muted tracking-widest">
-          <a href="#vaults" className="hover:text-wire-cyan transition-colors">
+          <Link href="/app" className="hover:text-wire-cyan transition-colors">
+            APP
+          </Link>
+          <Link href="/#vaults" className="hover:text-wire-cyan transition-colors">
             VAULTS
-          </a>
-          <a href="#flywheel" className="hover:text-wire-cyan transition-colors">
+          </Link>
+          <Link href="/#flywheel" className="hover:text-wire-cyan transition-colors">
             HOW IT WORKS
-          </a>
-          <a href="#token" className="hover:text-wire-cyan transition-colors">
+          </Link>
+          <Link href="/#token" className="hover:text-wire-cyan transition-colors">
             $BLUR
-          </a>
-          <a href="/docs" className="hover:text-wire-cyan transition-colors">
+          </Link>
+          <Link href="/docs" className="hover:text-wire-cyan transition-colors">
             DOCS
-          </a>
+          </Link>
           <a
             href="https://x.com/blurbotRH"
             target="_blank"

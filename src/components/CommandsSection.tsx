@@ -1,47 +1,5 @@
-interface Strategy {
-  num: string;
-  name: string;
-  split: string;
-  tag: string;
-  description: string;
-  rows: { label: string; pct: string }[];
-}
-
-const strategies: Strategy[] = [
-  {
-    num: "[01]",
-    name: "STEADY",
-    split: "100 / 0",
-    tag: "USDG YIELD · OPEN 24/7",
-    description:
-      "All stablecoin. Your USDG earns real on-chain lending yield. No stocks, no lockups.",
-    rows: [{ label: "USDG yield", pct: "100%" }],
-  },
-  {
-    num: "[02]",
-    name: "BALANCED",
-    split: "60 / 40",
-    tag: "YIELD FLOOR · STOCKS",
-    description:
-      "60% earning yield, 40% in a curated tokenized-stock basket (NVDA · SPY · AAPL · TSLA), auto-rebalanced.",
-    rows: [
-      { label: "USDG yield", pct: "60%" },
-      { label: "Stocks", pct: "40%" },
-    ],
-  },
-  {
-    num: "[03]",
-    name: "GROWTH",
-    split: "30 / 70",
-    tag: "YIELD FLOOR · STOCKS",
-    description:
-      "30% yield floor, 70% tokenized stocks. For savers who want their idle cash to chase the market.",
-    rows: [
-      { label: "USDG yield", pct: "30%" },
-      { label: "Stocks", pct: "70%" },
-    ],
-  },
-];
+import Link from "next/link";
+import { STRATEGIES } from "@/lib/strategies";
 
 export function CommandsSection() {
   return (
@@ -61,7 +19,7 @@ export function CommandsSection() {
           stablecoin yield floor and rebalances on its own.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-wire-border">
-          {strategies.map((s) => (
+          {STRATEGIES.map((s) => (
             <div
               key={s.name}
               className="bg-black p-6 hover:bg-wire-card transition-colors group flex flex-col"
@@ -92,9 +50,12 @@ export function CommandsSection() {
                   </div>
                 ))}
               </div>
-              <button className="font-mono text-xs text-wire-cyan border border-wire-border px-4 py-2.5 hover:border-wire-cyan hover:glow-cyan transition-all tracking-widest">
+              <Link
+                href="/app"
+                className="font-mono text-xs text-wire-cyan text-center border border-wire-border px-4 py-2.5 hover:border-wire-cyan hover:glow-cyan transition-all tracking-widest"
+              >
                 CHOOSE {s.name} →
-              </button>
+              </Link>
               <div className="font-mono text-xs text-wire-dim mt-3">└─</div>
             </div>
           ))}

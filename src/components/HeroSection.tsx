@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const ASCII = `
 ██████╗ ██╗     ██╗   ██╗██████╗ 
@@ -72,12 +73,12 @@ export function HeroSection() {
         )}
       </div>
       <div className="space-y-3 flex flex-col items-center">
-        <a
-          href="#vaults"
+        <Link
+          href="/app"
           className="flex items-center gap-3 bg-wire-cyan text-black font-mono font-bold text-base px-10 py-4 hover:opacity-90 hover:shadow-[0_0_40px_rgba(214,254,81,0.35)] transition-all tracking-widest"
         >
           START GROWING →
-        </a>
+        </Link>
         <div className="font-mono text-xs text-wire-muted">
           _ SELF-CUSTODIAL VAULT · ONE DEPOSIT · REDEEM ANYTIME IN-KIND
         </div>
