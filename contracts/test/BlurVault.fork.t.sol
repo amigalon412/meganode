@@ -131,6 +131,78 @@ contract BlurVaultForkTest is Test {
     }
 
     // ------------------------------------------------------------------
+    // Getting out
+    //
+    // The tests that matter most before funding this with real money. Not
+    // "does it earn" but "can I take it all back, including when something
+    // has gone wrong".
+    // ------------------------------------------------------------------
+
+    /// @notice Full unwind through the owner's escape hatch, against the live
+    ///         venue: recall everything, then redeem to the last share.
+    function test_Exit_OwnerCanUnwindEverything() public {
+        uint256 amount = 25_000 * ONE;
+        _deposit(alice, amount);
+
+        vm.prank(owner);
+        vault.deployIdle();
+        assertGt(steak.balanceOf(address(vault)), 0, "nothing was deployed");
+
+        vm.prank(owner);
+        uint256 recalled = vault.recallAll();
+        assertGt(recalled, 0, "recall returned nothing");
+        assertEq(steak.balanceOf(address(vault)), 0, "position not fully unwound");
+
+        uint256 before = usdg.balanceOf(alice);
+        uint256 shares = vault.balanceOf(alice);
+        vm.prank(alice);
+        vault.redeem(shares, alice, alice);
+
+        assertApproxEqAbs(usdg.balanceOf(alice) - before, amount, 2, "did not get everything back");
+    }
+
+    /// @notice Exit still works with automation halted and the keeper gone.
+    ///         A depositor must never depend on the bot being alive.
+    function test_Exit_WorksWithAutomationDead() public {
+        uint256 amount = 25_000 * ONE;
+        _deposit(alice, amount);
+
+        vm.prank(owner);
+        vault.deployIdle();
+
+        // Automation is switched off entirely.
+        vm.prank(owner);
+        vault.setGuard(address(0));
+
+        uint256 before = usdg.balanceOf(alice);
+        uint256 shares = vault.balanceOf(alice);
+        vm.prank(alice);
+        vault.redeem(shares, alice, alice);
+
+        assertApproxEqAbs(usdg.balanceOf(alice) - before, amount, 2, "exit depended on automation");
+    }
+
+    /// @notice A partial exit pulls from the venue on demand, without anyone
+    ///         having to unwind the position first.
+    function test_Exit_PartialWithdrawPullsFromTheVenue() public {
+        _deposit(alice, 25_000 * ONE);
+
+        vm.prank(owner);
+        vault.deployIdle();
+
+        // More than the idle buffer, so it must come out of the venue.
+        uint256 want = 20_000 * ONE;
+        assertGt(want, usdg.balanceOf(address(vault)), "test would not exercise the venue path");
+
+        uint256 before = usdg.balanceOf(alice);
+        vm.prank(alice);
+        vault.withdraw(want, alice, alice);
+
+        assertEq(usdg.balanceOf(alice) - before, want, "did not receive the amount asked for");
+        assertGt(vault.balanceOf(alice), 0, "the rest of the position vanished");
+    }
+
+    // ------------------------------------------------------------------
     // The classic ERC-4626 attack
     // ------------------------------------------------------------------
 
