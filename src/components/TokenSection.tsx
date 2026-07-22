@@ -32,8 +32,9 @@ export function TokenSection() {
         <p className="font-mono text-sm text-wire-muted leading-relaxed max-w-3xl mb-10">
           <span className="text-wire-cyan">$BLUR</span> is the token behind the protocol, live on
           Robinhood Chain. Its utility is tied to real usage: as the vaults grow, $BLUR is bought
-          back off the market, then burned or used to fund incentives for holders. Value from what
-          the protocol actually does — not hype.
+          back off the market and retired to an address with no known key. The contract has no burn
+          function, so supply stays fixed and the float shrinks instead. Value from what the
+          protocol actually does — not hype.
         </p>
         <div className="bg-black border border-wire-border p-6 md:p-8">
           <div className="font-mono text-[10px] text-wire-muted tracking-[0.3em] mb-3">

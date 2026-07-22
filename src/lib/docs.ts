@@ -472,7 +472,7 @@ export const DOC_GROUPS: DocGroup[] = [
             blocks: [
               {
                 type: "p",
-                text: "Collected fees fund the buyback: revenue is used to purchase $BLUR on the open market, which is then burned or routed into incentives. Usage feeds the token instead of the other way round.",
+                text: "Collected fees fund the buyback: revenue is used to purchase $BLUR on the open market, and what is bought is sent to an address nobody holds the key to. Usage feeds the token instead of the other way round.",
               },
             ],
           },
@@ -568,11 +568,15 @@ export const DOC_GROUPS: DocGroup[] = [
             blocks: [
               {
                 type: "p",
-                text: "The link between the token and the protocol is the buyback. Fee revenue is spent buying $BLUR on the open market, and what is bought is burned or used to fund incentives. More assets under management means more fees, which means more buying pressure that did not come from a narrative.",
+                text: "The link between the token and the protocol is the buyback. Fee revenue is spent buying $BLUR on the open market, and what is bought is retired. More assets under management means more fees, which means more buying pressure that did not come from a narrative.",
               },
               {
                 type: "note",
                 text: "That is a description of a mechanism, not a promise about price. A buyback funded by fees is only as large as the fees.",
+              },
+              {
+                type: "note",
+                text: "\"Retired\" is precise, and \"burned\" would not be. The token contract has no burn function — nobody can reduce its supply, including whoever deployed it. Retired tokens are sent to an address with no known key, so total supply stays at one billion while the circulating float shrinks. Judge the buyback by the module's own retired counter, not by total supply.",
               },
             ],
           },
@@ -598,7 +602,7 @@ export const DOC_GROUPS: DocGroup[] = [
                   "                           +----------+----------+",
                   "                           |                     |",
                   "                           v                     v",
-                  "                         burn            holder incentives",
+                  "                       retire            holder incentives",
                 ],
               },
               {

@@ -8,6 +8,11 @@ interface IAllocatable {
     function rebalance(address token, uint256 maxTradeAssets, uint16 maxSlippageBps) external returns (uint256);
 }
 
+interface IBuyback {
+    function collect(address vault, uint256 shares) external returns (uint256);
+    function buyback(uint256 maxSpend, uint256 minAmountOut) external returns (uint256);
+}
+
 /// @title KeeperGuard
 /// @notice The only address a vault trusts to run automation, and the place
 ///         every limit on that automation is enforced.
@@ -36,6 +41,12 @@ contract KeeperGuard is Ownable {
     /// @notice Addresses that may halt automation without being able to run it.
     mapping(address => bool) public isSentinel;
 
+    /// @notice Buyback modules this guard is allowed to drive.
+    mapping(address => bool) public isBuyback;
+
+    /// @notice Largest amount of fee revenue a single buyback may spend.
+    uint256 public maxBuybackPerCall;
+
     /// @notice Largest amount a single call may allocate.
     uint256 public maxDeployPerCall;
 
@@ -61,6 +72,10 @@ contract KeeperGuard is Ownable {
     event Rebalanced(address indexed vault, address indexed keeper, address token, uint256 traded);
     event PausedSet(bool paused);
     event Deployed(address indexed vault, address indexed keeper, uint256 assets);
+    event BuybackSet(address module, bool allowed);
+    event BuybackLimitUpdated(uint256 maxBuybackPerCall);
+    event FeesCollected(address indexed module, address indexed vault, uint256 assets);
+    event BoughtBack(address indexed module, address indexed keeper, uint256 retired);
 
     error NotKeeper();
     error NotSentinel();
@@ -68,6 +83,7 @@ contract KeeperGuard is Ownable {
     error CoolingDown();
     error Paused();
     error SlippageOutOfRange();
+    error BuybackNotAllowed();
 
     constructor(address owner_, uint256 maxDeployPerCall_, uint32 cooldown_) Ownable(owner_) {
         maxDeployPerCall = maxDeployPerCall_;
@@ -113,6 +129,38 @@ contract KeeperGuard is Ownable {
         emit Rebalanced(vault, msg.sender, token, traded);
     }
 
+    /// @notice Turn a module's collected fee shares into stable.
+    /// @dev Separate from the buyback itself so a redemption that the vault
+    ///      refuses to price does not also block spending stable already on
+    ///      hand, and so each half gets its own cooldown slot.
+    function collectFees(address module, address vault, uint256 shares) external returns (uint256 assets) {
+        if (paused) revert Paused();
+        if (!isKeeper[msg.sender]) revert NotKeeper();
+        if (!isBuyback[module]) revert BuybackNotAllowed();
+
+        assets = IBuyback(module).collect(vault, shares);
+        emit FeesCollected(module, vault, assets);
+    }
+
+    /// @notice Spend fee revenue on the protocol token and retire it.
+    /// @dev The size cap is the guard's, the cooldown is the guard's, and the
+    ///      module is one the owner registered. `minAmountOut` is the keeper's,
+    ///      because the protocol token has no price feed to check it against —
+    ///      see the note on BuybackModule.buyback. That is why the size cap
+    ///      exists and why it should be set conservatively.
+    function buyback(address module, uint256 minAmountOut) external returns (uint256 retired) {
+        if (paused) revert Paused();
+        if (!isKeeper[msg.sender]) revert NotKeeper();
+        if (!isBuyback[module]) revert BuybackNotAllowed();
+
+        uint256 last = lastActionAt[module];
+        if (last != 0 && block.timestamp < last + cooldown) revert CoolingDown();
+
+        lastActionAt[module] = block.timestamp;
+        retired = IBuyback(module).buyback(maxBuybackPerCall, minAmountOut);
+        emit BoughtBack(module, msg.sender, retired);
+    }
+
     // ---------------------------------------------------------------------
     // Halting
     // ---------------------------------------------------------------------
@@ -143,6 +191,16 @@ contract KeeperGuard is Ownable {
     function setVault(address vault, bool allowed) external onlyOwner {
         isVault[vault] = allowed;
         emit VaultSet(vault, allowed);
+    }
+
+    function setBuyback(address module, bool allowed) external onlyOwner {
+        isBuyback[module] = allowed;
+        emit BuybackSet(module, allowed);
+    }
+
+    function setBuybackLimit(uint256 maxBuybackPerCall_) external onlyOwner {
+        maxBuybackPerCall = maxBuybackPerCall_;
+        emit BuybackLimitUpdated(maxBuybackPerCall_);
     }
 
     function setSentinel(address sentinel, bool allowed) external onlyOwner {

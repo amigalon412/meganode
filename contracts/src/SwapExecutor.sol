@@ -42,7 +42,9 @@ abstract contract SwapExecutor is IUnlockCallback {
     }
 
     /// @notice Swap `amountIn` of the input side for at least `minAmountOut`.
-    function _executeSwap(SwapRequest memory req) internal returns (uint256 amountOut) {
+    /// @dev Virtual so a test can substitute a deterministic fill and measure
+    ///      the decision around the swap rather than the venue.
+    function _executeSwap(SwapRequest memory req) internal virtual returns (uint256 amountOut) {
         bytes memory result = poolManager.unlock(abi.encode(req));
         amountOut = abi.decode(result, (uint256));
     }
