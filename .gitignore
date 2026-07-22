@@ -47,3 +47,9 @@ next-env.d.ts
 
 # Local temp files
 temp/
+
+# Foundry deps and build output
+contracts/lib/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
