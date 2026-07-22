@@ -5,6 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IAllocatable {
     function deployIdle(uint256 maxAssets) external returns (uint256);
+    function rebalance(address token, uint256 maxTradeAssets, uint16 maxSlippageBps) external returns (uint256);
 }
 
 /// @title KeeperGuard
@@ -18,10 +19,13 @@ interface IAllocatable {
 ///      address of its choosing, cannot unwind a position, cannot change a fee,
 ///      a buffer or an owner, and cannot act on a vault nobody registered.
 ///
-///      Today the only automated action is allocation, so the applicable limits
-///      are the caller allowlist, the vault allowlist, a per-call size cap and a
-///      cooldown. Trading brings asset allowlists, slippage caps and oracle
-///      freshness; they belong here too, checked before the call goes through.
+///      Two actions are automated: allocating idle balance to the lending
+///      venue, and rebalancing the split between the legs. Both are bounded by
+///      the caller allowlist, the vault allowlist, a per-call size cap and a
+///      cooldown. Rebalancing adds a slippage cap, which is the guard's
+///      parameter rather than the keeper's — a compromised keeper must not be
+///      able to accept a worse fill than the operator chose. Oracle freshness
+///      is enforced by the vault itself, which refuses to price a stale basket.
 contract KeeperGuard is Ownable {
     /// @notice Keepers permitted to trigger automation.
     mapping(address => bool) public isKeeper;
@@ -35,6 +39,12 @@ contract KeeperGuard is Ownable {
     /// @notice Largest amount a single call may allocate.
     uint256 public maxDeployPerCall;
 
+    /// @notice Largest amount a single rebalance may move between the legs.
+    uint256 public maxRebalancePerCall;
+
+    /// @notice Worst fill a rebalance may accept against the oracle price.
+    uint16 public maxSlippageBps;
+
     /// @notice Minimum seconds between actions on the same vault.
     uint32 public cooldown;
 
@@ -47,6 +57,8 @@ contract KeeperGuard is Ownable {
     event VaultSet(address vault, bool allowed);
     event SentinelSet(address sentinel, bool allowed);
     event LimitsUpdated(uint256 maxDeployPerCall, uint32 cooldown);
+    event TradeLimitsUpdated(uint256 maxRebalancePerCall, uint16 maxSlippageBps);
+    event Rebalanced(address indexed vault, address indexed keeper, address token, uint256 traded);
     event PausedSet(bool paused);
     event Deployed(address indexed vault, address indexed keeper, uint256 assets);
 
@@ -55,10 +67,13 @@ contract KeeperGuard is Ownable {
     error VaultNotAllowed();
     error CoolingDown();
     error Paused();
+    error SlippageOutOfRange();
 
     constructor(address owner_, uint256 maxDeployPerCall_, uint32 cooldown_) Ownable(owner_) {
         maxDeployPerCall = maxDeployPerCall_;
         cooldown = cooldown_;
+        maxRebalancePerCall = maxDeployPerCall_;
+        maxSlippageBps = 100; // 1%
     }
 
     // ---------------------------------------------------------------------
@@ -78,6 +93,24 @@ contract KeeperGuard is Ownable {
         lastActionAt[vault] = block.timestamp;
         deployed = IAllocatable(vault).deployIdle(maxDeployPerCall);
         emit Deployed(vault, msg.sender, deployed);
+    }
+
+    /// @notice Move a vault back toward its target split, within limits.
+    /// @dev The keeper names the constituent. It does not choose the direction
+    ///      or the size: the vault computes both from the live gap to target
+    ///      and this caps them. Slippage is the guard's parameter, not the
+    ///      keeper's, so a compromised keeper cannot accept a worse fill.
+    function rebalance(address vault, address token) external returns (uint256 traded) {
+        if (paused) revert Paused();
+        if (!isKeeper[msg.sender]) revert NotKeeper();
+        if (!isVault[vault]) revert VaultNotAllowed();
+
+        uint256 last = lastActionAt[vault];
+        if (last != 0 && block.timestamp < last + cooldown) revert CoolingDown();
+
+        lastActionAt[vault] = block.timestamp;
+        traded = IAllocatable(vault).rebalance(token, maxRebalancePerCall, maxSlippageBps);
+        emit Rebalanced(vault, msg.sender, token, traded);
     }
 
     // ---------------------------------------------------------------------
@@ -121,5 +154,12 @@ contract KeeperGuard is Ownable {
         maxDeployPerCall = maxDeployPerCall_;
         cooldown = cooldown_;
         emit LimitsUpdated(maxDeployPerCall_, cooldown_);
+    }
+
+    function setTradeLimits(uint256 maxRebalancePerCall_, uint16 maxSlippageBps_) external onlyOwner {
+        if (maxSlippageBps_ > 10_000) revert SlippageOutOfRange();
+        maxRebalancePerCall = maxRebalancePerCall_;
+        maxSlippageBps = maxSlippageBps_;
+        emit TradeLimitsUpdated(maxRebalancePerCall_, maxSlippageBps_);
     }
 }

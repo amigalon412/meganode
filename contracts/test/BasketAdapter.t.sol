@@ -20,6 +20,10 @@ contract MockStock is MockERC20 {
         return multiplier;
     }
 
+    function burnFrom(address a, uint256 amount) external {
+        _burn(a, amount);
+    }
+
     function setMultiplier(uint256 m) external {
         multiplier = m;
     }

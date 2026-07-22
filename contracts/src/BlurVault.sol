@@ -55,6 +55,12 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     /// @dev Cached so USD valuations can be scaled without another external call.
     uint8 private immutable _assetDecimals;
 
+    /// @notice Drift tolerated before a rebalance is allowed, in bps of total.
+    /// @dev Trading on noise pays spread for nothing. Nothing happens inside
+    ///      the band; outside it, a trade may move the split back to target and
+    ///      no further.
+    uint16 public driftBandBps;
+
     event Deployed(uint256 assets);
     event Recalled(uint256 assets);
     event BufferUpdated(uint16 bufferBps);
@@ -62,6 +68,8 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     event FeeRecipientUpdated(address recipient);
     event GuardUpdated(address guard);
     event BasketUpdated(address basket, uint16 targetStableBps);
+    event Rebalanced(address indexed token, uint256 traded, int256 driftAfterBps);
+    event DriftBandUpdated(uint16 bandBps);
     event RedeemedInKind(
         address indexed caller, address indexed receiver, address indexed owner, uint256 shares, uint256 stableOut
     );
@@ -69,6 +77,9 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     error AssetMismatch();
     error BasketNotEmpty();
     error SplitOutOfRange();
+    error NoBasket();
+    error WithinBand();
+    error SlippageOutOfRange();
     error BufferTooHigh();
     error FeeTooHigh();
     error ZeroFeeRecipient();
@@ -87,6 +98,7 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         performanceFeeBps = 500;
         feeRecipient = owner_;
         targetStableBps = BPS; // lending-only until a basket is attached
+        driftBandBps = 200; // 2%
         _assetDecimals = IERC20Metadata(address(asset_)).decimals();
         highWaterMark = _sharePrice();
     }
@@ -312,6 +324,111 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         IERC20(asset()).forceApprove(address(yieldVault), deployed);
         yieldVault.deposit(deployed, address(this));
         emit Deployed(deployed);
+    }
+
+    // ---------------------------------------------------------------------
+    // Rebalancing
+    // ---------------------------------------------------------------------
+
+    /// @notice How far the split has drifted from target, in bps of total, and
+    ///         which way. Positive means over-weight stablecoin.
+    function driftBps() public view returns (int256) {
+        uint256 total = totalAssets();
+        if (total == 0) return 0;
+        int256 current = int256((_stableAssets() * BPS) / total);
+        return current - int256(uint256(targetStableBps));
+    }
+
+    /// @notice True when drift is outside the band and a trade is warranted.
+    function needsRebalance() external view returns (bool) {
+        if (address(basket) == address(0) || !isPriceable()) return false;
+        int256 d = driftBps();
+        return (d < 0 ? uint256(-d) : uint256(d)) > driftBandBps;
+    }
+
+    /// @notice Trade one constituent back toward the target split.
+    /// @param token Constituent to trade.
+    /// @param maxTradeAssets Ceiling on the size of the trade, in asset units.
+    /// @param maxSlippageBps Worst acceptable fill against the oracle price.
+    /// @return traded Asset value actually moved between the legs.
+    ///
+    /// @dev The caller chooses which constituent and how much at most. It does
+    ///      not choose the direction, and it cannot overshoot: the amount is
+    ///      computed here from the live gap to target and then capped. A caller
+    ///      that asks for more than the gap simply closes the gap.
+    ///
+    ///      Nothing happens while drift is inside the band, so a keeper cannot
+    ///      grind the vault down by trading it back and forth at the target.
+    function rebalance(address token, uint256 maxTradeAssets, uint16 maxSlippageBps)
+        external
+        nonReentrant
+        returns (uint256 traded)
+    {
+        _requireAutomation();
+        if (address(basket) == address(0)) revert NoBasket();
+        if (maxSlippageBps > BPS) revert SlippageOutOfRange();
+
+        accrueFee();
+
+        uint256 total = totalAssets();
+        uint256 stable = _stableAssets();
+        uint256 targetStable = (total * targetStableBps) / BPS;
+        uint256 band = (total * driftBandBps) / BPS;
+
+        if (stable > targetStable) {
+            uint256 gap = stable - targetStable;
+            if (gap <= band) revert WithinBand();
+            traded = gap > maxTradeAssets ? maxTradeAssets : gap;
+            _buyEquity(token, traded, maxSlippageBps);
+        } else {
+            uint256 gap = targetStable - stable;
+            if (gap <= band) revert WithinBand();
+            traded = gap > maxTradeAssets ? maxTradeAssets : gap;
+            _sellEquity(token, traded, maxSlippageBps);
+        }
+
+        emit Rebalanced(token, traded, driftBps());
+    }
+
+    function _buyEquity(address token, uint256 assetsIn, uint16 maxSlippageBps) internal {
+        // Free the stablecoin up if it is sitting in the lending venue.
+        uint256 idle = _idle();
+        if (idle < assetsIn) {
+            yieldVault.withdraw(assetsIn - idle, address(this), address(this));
+            emit Recalled(assetsIn - idle);
+        }
+
+        IERC20(asset()).safeTransfer(address(basket), assetsIn);
+        uint256 minOut = _expectedTokensFor(token, assetsIn);
+        minOut = (minOut * (BPS - maxSlippageBps)) / BPS;
+        basket.buy(token, assetsIn, minOut);
+    }
+
+    function _sellEquity(address token, uint256 assetsOut, uint16 maxSlippageBps) internal {
+        uint256 amountIn = _tokensWorth(token, assetsOut);
+        uint256 held = IERC20(token).balanceOf(address(basket));
+        if (amountIn > held) amountIn = held;
+
+        uint256 minOut = (assetsOut * (BPS - maxSlippageBps)) / BPS;
+        basket.sell(token, amountIn, minOut);
+    }
+
+    /// @dev Tokens the oracle says `assets` should buy, before slippage.
+    function _expectedTokensFor(address token, uint256 assets) internal view returns (uint256) {
+        (, uint8 tokenDecimals,,) = basket.constituents(token);
+        uint256 usd = assets * (10 ** (18 - _assetDecimals));
+        return (usd * (10 ** tokenDecimals)) / basket.oracle().priceUsd(token);
+    }
+
+    /// @dev Tokens whose oracle value is `assets`.
+    function _tokensWorth(address token, uint256 assets) internal view returns (uint256) {
+        return _expectedTokensFor(token, assets);
+    }
+
+    function setDriftBandBps(uint16 newBandBps) external onlyOwner {
+        if (newBandBps > BPS) revert SplitOutOfRange();
+        driftBandBps = newBandBps;
+        emit DriftBandUpdated(newBandBps);
     }
 
     /// @notice Address permitted to run automation alongside the owner.
