@@ -531,20 +531,30 @@ export const DOC_GROUPS: DocGroup[] = [
         slug: "auto-save",
         title: "Goals & auto-save",
         intro: [
-          "Auto-save is scheduled dollar-cost averaging: set a target, and the protocol pulls a fixed amount on a fixed cadence until you get there.",
+          "Not built. This page describes an intended design so it can be judged before it exists, not a feature you can use.",
         ],
         sections: [
           {
+            id: "status",
+            title: "Status",
+            blocks: [
+              {
+                type: "note",
+                text: "There is no auto-save contract, on any network. The card on the app page says the same. When it ships, this page will describe what was built rather than what was planned.",
+              },
+            ],
+          },
+          {
             id: "how",
-            title: "How it is set up",
+            title: "How it would be set up",
             blocks: [
               {
                 type: "p",
-                text: "You grant an allowance for a specific amount and set the interval and the target. The scheduler may move that allowance and nothing else — it cannot touch the rest of your wallet, cannot exceed the total you set, and stops on its own once the goal is reached.",
+                text: "Scheduled dollar-cost averaging: you would grant an allowance for a specific amount and set an interval and a target. The scheduler could move that allowance and nothing else — not the rest of the wallet, not more than the total set — and would stop once the goal was reached.",
               },
               {
                 type: "p",
-                text: "Cancelling is a matter of revoking the allowance. It takes effect immediately and needs nobody's cooperation.",
+                text: "Cancelling would be a matter of revoking the allowance: immediate, and needing nobody's cooperation. That property is the reason for the shape, and it is what the implementation will be judged against.",
               },
             ],
           },

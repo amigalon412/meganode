@@ -1,13 +1,12 @@
 # BLUR contracts
 
-The lending leg, complete: `BlurVault` is an ERC-4626 vault that takes USDG,
-issues shares, routes idle balance into an external ERC-4626 lending vault,
-charges a performance fee above a high-water mark, and can be driven by a
-bounded keeper. That is the STEADY strategy in full — it needs no oracle, no
-DEX and no stock tokens.
+`BlurVault` is an ERC-4626 vault that takes USDG, issues shares, routes idle
+balance into an external ERC-4626 lending vault, holds a basket of tokenized
+stock tokens alongside it, rebalances between the two, charges a performance
+fee above a high-water mark, and can be driven by a bounded keeper. Fee revenue
+goes to `BuybackModule`, which buys the protocol token and retires it.
 
-Still to come: the tokenized-stock leg and the buyback. `totalAssets()` is the
-seam the second leg extends.
+Nothing is deployed to mainnet.
 
 ## What a compromised keeper can do
 
@@ -107,3 +106,72 @@ yield" — no equity exposure anywhere in it.
 There is no function that sends depositor assets to an arbitrary address. The
 owner chooses only how much sits idle versus deployed. `test_OwnerCannotTakeDepositorFunds`
 asserts this rather than trusting it.
+
+
+## Deploying
+
+Everything below is one strategy. Run it once per vault, changing the split.
+
+```bash
+cd contracts
+
+export OWNER=0x...            # holds every contract afterwards
+export KEEPER=0x...           # the bot's address; may be omitted and set later
+export SENTINEL=0x...         # may halt automation but not run it
+export TARGET_STABLE_BPS=6000 # 10000 STEADY, 6000 BALANCED, 3000 GROWTH
+export VAULT_NAME="BLUR Balanced"
+export VAULT_SYMBOL=blurBALANCED
+
+forge script script/DeployStack.s.sol:DeployStack \
+  --rpc-url https://rpc.mainnet.chain.robinhood.com \
+  --broadcast --verify
+```
+
+Feeds and pool keys are not parameters. They come from `RobinhoodChain`, where
+every address was read on-chain and every pool proved by trading through it on
+a fork. An operator should not be able to introduce a mistyped feed at deploy
+time.
+
+### Then check it, rather than assuming
+
+A script that ran without reverting proves its calls succeeded, not that the
+finished state is the one intended. Read the deployment back:
+
+```bash
+cd ..
+VAULT=0x... GUARD=0x... BASKET=0x... ORACLE=0x... \
+OWNER=0x... KEEPER=0x... node scripts/verify-deployment.mjs
+```
+
+It checks the wiring, the parameters, that every constituent has a feed and a
+pool for the right pair, and — the part worth having — that the basket can no
+longer be substituted. It sends nothing and needs no key.
+
+Two states it will warn about rather than pass silently:
+
+- **The basket slot is still open.** A vault with no basket and no shares can
+  still have one attached. That is a half-finished deployment, and the address
+  should not be published until it is not.
+- **The guard is paused.** Automation will not run.
+
+### Order of operations
+
+1. Deploy with `TARGET_STABLE_BPS` set. The script attaches the basket in the
+   same run, which matters: the basket can only ever be set once, and only
+   while the vault has issued no shares. A vault that takes a deposit first can
+   never have an equity leg.
+2. Run the verifier. Do not skip this because the script printed addresses.
+3. Deploy `BuybackModule`, point it at a pool, register it on the guard, and
+   set it as the vault's fee recipient. It needs a protocol token to exist
+   first.
+4. Put the addresses in `NEXT_PUBLIC_VAULT_*` for the site, and in the docs
+   address table.
+
+### Who holds the owner key
+
+The owner cannot move deposits to an address of its choosing — the basket is
+fixed and rebalance slippage is a constant. What it can do is make the vault
+trade pointlessly, and change the fee, the buffer and the split. Treat it as a
+key worth protecting, not as a key that controls the money: a hardware wallet
+at minimum, a Safe once anyone else has deposited. Safe is deployed on this
+chain at the canonical addresses.

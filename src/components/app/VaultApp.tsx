@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { ConnectButton } from "@/components/ConnectButton";
 import { DepositPanel } from "@/components/app/DepositPanel";
 import { EmptyCard } from "@/components/app/EmptyCard";
 import { StrategyPicker } from "@/components/app/StrategyPicker";
@@ -125,12 +124,10 @@ export function VaultApp() {
 
             <EmptyCard
               title="AUTO-SAVE"
-              badge="DCA"
-              body="Top up toward a target on autopilot. Connect a wallet to set it up."
-              caption="PERMISSIONLESS · MOVES ONLY USDG YOU APPROVE · CAPPED AT YOUR TARGET"
-            >
-              <ConnectButton className="w-full text-sm text-wire-cyan border border-wire-border py-3.5 mt-5 hover:border-wire-cyan hover:glow-cyan" />
-            </EmptyCard>
+              badge="NOT BUILT"
+              body="Scheduled top-ups toward a target. There is no contract for this yet, so there is nothing to connect to — the docs describe the intended design."
+              caption="PLANNED · MOVES ONLY USDG YOU APPROVE · CANCEL BY REVOKING"
+            />
           </div>
 
           <div className="lg:sticky lg:top-20">
