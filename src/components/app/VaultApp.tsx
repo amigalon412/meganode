@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useVault";
 import { NOTHING_DEPLOYED } from "@/lib/chain";
 import { STRATEGIES, type StrategyId } from "@/lib/strategies";
+import { AsciiRule } from "@/components/AsciiRule";
 
 export function VaultApp() {
   const [selected, setSelected] = useState<StrategyId>("balanced");
@@ -59,9 +60,7 @@ export function VaultApp() {
         <div className="font-mono text-sm text-wire-muted tracking-[0.4em] mb-3">
           {"// VAULT TERMINAL"}
         </div>
-        <div className="font-mono text-xs text-wire-cyan/40 mb-7">
-          ╠══════════════════════════════════════════════════════════════╣
-        </div>
+        <AsciiRule className="text-xs text-wire-cyan/40 mb-7" />
         <h1 className="font-mono text-3xl md:text-5xl text-wire-cyan glow-cyan mb-10 leading-tight">
           Put your cash to work.
         </h1>

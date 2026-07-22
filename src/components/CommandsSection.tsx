@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { STRATEGIES } from "@/lib/strategies";
+import { AsciiRule } from "@/components/AsciiRule";
 
 export function CommandsSection() {
   return (
@@ -8,9 +9,7 @@ export function CommandsSection() {
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">
           {"// CHOOSE A STRATEGY"}
         </div>
-        <div className="font-mono text-[10px] text-wire-border mb-6">
-          ╠══════════════════════════════════════════════════════════════╣
-        </div>
+        <AsciiRule className="text-[10px] text-wire-border mb-6" />
         <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-4 leading-snug md:leading-9">
           One deposit. Three ways to grow.
         </h2>

@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { DocBody } from "@/components/docs/DocBody";
 import { DocsSidebar } from "@/components/docs/DocsSidebar";
 import { DOC_PAGES, getDocNeighbours, getDocPage } from "@/lib/docs";
+import { AsciiRule } from "@/components/AsciiRule";
 
 export function generateStaticParams() {
   return DOC_PAGES.map((p) => ({ slug: p.slug }));
@@ -66,9 +67,7 @@ export default async function DocsPage({
                 <h2 className="font-mono text-2xl text-wire-cyan glow-cyan mb-3 tracking-wide">
                   {section.title}
                 </h2>
-                <div className="font-mono text-xs text-wire-cyan/40 mb-6">
-                  ╠════════════════════════════════════════════╣
-                </div>
+                <AsciiRule className="text-xs text-wire-cyan/40 mb-6" length={44} />
                 <DocBody blocks={section.blocks} />
               </section>
             ))}

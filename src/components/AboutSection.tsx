@@ -1,3 +1,5 @@
+import { AsciiRule } from "@/components/AsciiRule";
+
 type AboutCard = {
   title: string;
   body: string;
@@ -35,7 +37,7 @@ export function AboutSection() {
     <section id="about" className="border-b border-wire-border px-8 py-20 scroll-mt-16">
       <div className="max-w-5xl mx-auto">
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">{"// WHAT IS BLUR"}</div>
-        <div className="font-mono text-[10px] text-wire-border mb-10">╠══════════════════════════════════════════════════════════════╣</div>
+        <AsciiRule className="text-[10px] text-wire-border mb-10" />
         <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-6 leading-snug md:leading-9">Your idle stablecoin, working.</h2>
         <p className="font-mono text-sm text-wire-muted leading-relaxed max-w-3xl mb-10">
           BLUR is a non-custodial auto-yield vault on Robinhood Chain. Deposit{" "}

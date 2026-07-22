@@ -1,3 +1,5 @@
+import { AsciiRule } from "@/components/AsciiRule";
+
 interface SecurityCard {
   tag: string;
   num: string;
@@ -33,9 +35,7 @@ export function SecuritySection() {
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">
           {"// WHY BLUR"}
         </div>
-        <div className="font-mono text-[10px] text-wire-border mb-6">
-          ╠══════════════════════════════════════════════════════════════╣
-        </div>
+        <AsciiRule className="text-[10px] text-wire-border mb-6" />
         <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-8 leading-snug md:leading-9">
           Built to be trusted.
         </h2>

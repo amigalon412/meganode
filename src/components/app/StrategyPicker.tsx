@@ -2,6 +2,7 @@
 
 import { formatUsdg } from "@/hooks/useVault";
 import { BAR_FILL, BAR_TRACK, STRATEGIES, type StrategyId } from "@/lib/strategies";
+import { AsciiRule } from "@/components/AsciiRule";
 
 interface StrategyPickerProps {
   selected: StrategyId;
@@ -21,9 +22,7 @@ export function StrategyPicker({ selected, onSelect, tvl }: StrategyPickerProps)
           3 VAULTS
         </span>
       </div>
-      <div className="font-mono text-xs text-wire-cyan/40 mb-6">
-        ╠══════════════════════════════════════════════════════════════╣
-      </div>
+      <AsciiRule className="text-xs text-wire-cyan/40 mb-6" />
       <div className="space-y-px bg-wire-border">
         {STRATEGIES.map((s) => {
           const active = s.id === selected;

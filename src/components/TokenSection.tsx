@@ -1,3 +1,5 @@
+import { AsciiRule } from "@/components/AsciiRule";
+
 export function TokenSection() {
   return (
     <section id="token" className="border-b border-wire-border px-8 py-20 scroll-mt-16">
@@ -5,9 +7,7 @@ export function TokenSection() {
         <div className="font-mono text-xs text-wire-muted tracking-[0.4em] mb-2">
           {"// $BLUR"}
         </div>
-        <div className="font-mono text-[10px] text-wire-border mb-6">
-          ╠══════════════════════════════════════════════════════════════╣
-        </div>
+        <AsciiRule className="text-[10px] text-wire-border mb-6" />
         <h2 className="font-mono text-2xl md:text-3xl text-wire-cyan glow-cyan mb-4 leading-snug md:leading-9">
           A token that earns its keep.
         </h2>
