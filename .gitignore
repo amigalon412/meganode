@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+keeper/node_modules/
 .pnp
 .pnp.js
 
@@ -8,6 +9,13 @@ node_modules/
 out/
 build/
 dist/
+*.tsbuildinfo
+
+# Foundry build output. `lib/` itself is NOT ignored: the dependencies live
+# there as pinned submodules, which is what makes the build reproducible.
+contracts/out/
+contracts/cache/
+contracts/broadcast/
 
 # Environment
 .env
@@ -16,14 +24,15 @@ dist/
 .env.test.local
 .env.production.local
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# TypeScript
+next-env.d.ts
+
+# Vercel
+.vercel
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 
@@ -31,12 +40,10 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# Vercel
-.vercel
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Local settings (not project config)
 .claude/settings.local.json
@@ -47,9 +54,3 @@ next-env.d.ts
 
 # Local temp files
 temp/
-
-# Foundry deps and build output
-contracts/lib/
-contracts/out/
-contracts/cache/
-contracts/broadcast/
