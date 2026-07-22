@@ -4,11 +4,13 @@ pragma solidity 0.8.26;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {BasketAdapter} from "./BasketAdapter.sol";
 
 /// @title BlurVault
 /// @notice Tokenized vault that puts idle stablecoin to work in an external
@@ -43,14 +45,30 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Contract allowed to run automation. Zero disables it.
     address public guard;
 
+    /// @notice Equity side of the vault. Zero means this is a lending-only vault.
+    BasketAdapter public basket;
+
+    /// @notice Share of the vault targeted at the lending leg, in bps.
+    /// @dev 10_000 is STEADY. 6_000 is BALANCED. 3_000 is GROWTH.
+    uint16 public targetStableBps;
+
+    /// @dev Cached so USD valuations can be scaled without another external call.
+    uint8 private immutable _assetDecimals;
+
     event Deployed(uint256 assets);
     event Recalled(uint256 assets);
     event BufferUpdated(uint16 bufferBps);
     event FeeAccrued(uint256 feeAssets, uint256 feeShares, uint256 newHighWaterMark);
     event FeeRecipientUpdated(address recipient);
     event GuardUpdated(address guard);
+    event BasketUpdated(address basket, uint16 targetStableBps);
+    event RedeemedInKind(
+        address indexed caller, address indexed receiver, address indexed owner, uint256 shares, uint256 stableOut
+    );
 
     error AssetMismatch();
+    error BasketNotEmpty();
+    error SplitOutOfRange();
     error BufferTooHigh();
     error FeeTooHigh();
     error ZeroFeeRecipient();
@@ -68,6 +86,8 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         bufferBps = 500;
         performanceFeeBps = 500;
         feeRecipient = owner_;
+        targetStableBps = BPS; // lending-only until a basket is attached
+        _assetDecimals = IERC20Metadata(address(asset_)).decimals();
         highWaterMark = _sharePrice();
     }
 
@@ -79,8 +99,35 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /// @inheritdoc ERC4626
+    /// @dev Reverts when the basket cannot be priced — a stale feed or an
+    ///      unacknowledged split. That deliberately blocks deposits and
+    ///      priced withdrawals rather than quoting a share price nobody
+    ///      can stand behind. `redeemInKind` stays open in that state.
     function totalAssets() public view override returns (uint256) {
-        return _idle() + yieldVault.convertToAssets(yieldVault.balanceOf(address(this)));
+        return _stableAssets() + basketAssets();
+    }
+
+    /// @notice Value of the lending leg plus anything sitting idle.
+    function stableAssets() public view returns (uint256) {
+        return _stableAssets();
+    }
+
+    /// @notice Value of the equity leg, in asset units.
+    function basketAssets() public view returns (uint256) {
+        if (address(basket) == address(0)) return 0;
+        return _usdToAssets(basket.totalValueUsd());
+    }
+
+    /// @notice How the vault is actually split right now, in bps.
+    function currentStableBps() external view returns (uint16) {
+        uint256 total = totalAssets();
+        if (total == 0) return targetStableBps;
+        return uint16((_stableAssets() * BPS) / total);
+    }
+
+    /// @notice True when a priced deposit or withdrawal can go through.
+    function isPriceable() public view returns (bool) {
+        return address(basket) == address(0) || basket.isValuable();
     }
 
     // ---------------------------------------------------------------------
@@ -186,6 +233,56 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     // ---------------------------------------------------------------------
+    // In-kind redemption
+    // ---------------------------------------------------------------------
+
+    /// @notice Burn shares and take a pro-rata slice of everything the vault
+    ///         holds — stablecoin and equities alike — without selling anything.
+    ///
+    /// @dev Consults no price at any point. The slice is `shares / totalSupply`,
+    ///      which is arithmetic on the share ledger alone, so this path keeps
+    ///      working when feeds are stale, the equity market is shut, or a split
+    ///      is pending. Those are exactly the moments an exit matters, and they
+    ///      are exactly the moments `totalAssets()` refuses to answer.
+    ///
+    ///      The fee is skipped when the vault cannot be priced. Charging it
+    ///      would require a share price, and trapping a holder's funds to
+    ///      protect a fee is the wrong way round.
+    function redeemInKind(uint256 shares, address receiver, address owner)
+        external
+        nonReentrant
+        returns (uint256 stableOut, address[] memory tokens, uint256[] memory amounts)
+    {
+        if (isPriceable()) accrueFee();
+
+        if (msg.sender != owner) _spendAllowance(owner, msg.sender, shares);
+
+        uint256 supply = totalSupply();
+        uint256 idleShare = (_idle() * shares) / supply;
+        uint256 venueShare = (yieldVault.convertToAssets(yieldVault.balanceOf(address(this))) * shares) / supply;
+
+        // Burn before moving anything out.
+        _burn(owner, shares);
+
+        if (venueShare > 0) {
+            yieldVault.withdraw(venueShare, address(this), address(this));
+            emit Recalled(venueShare);
+        }
+
+        stableOut = idleShare + venueShare;
+        if (stableOut > 0) IERC20(asset()).safeTransfer(receiver, stableOut);
+
+        if (address(basket) != address(0)) {
+            (tokens, amounts) = basket.sendSliceToVault(shares, supply);
+            for (uint256 i; i < tokens.length; ++i) {
+                if (amounts[i] > 0) IERC20(tokens[i]).safeTransfer(receiver, amounts[i]);
+            }
+        }
+
+        emit RedeemedInKind(msg.sender, receiver, owner, shares, stableOut);
+    }
+
+    // ---------------------------------------------------------------------
     // Allocation
     // ---------------------------------------------------------------------
 
@@ -239,6 +336,24 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         emit Recalled(recalled);
     }
 
+    /// @notice Attach the equity leg and set the target split.
+    /// @dev Detaching requires the basket to be empty first, so a position can
+    ///      never be stranded in an adapter the vault has stopped counting.
+    function setBasket(BasketAdapter newBasket, uint16 newTargetStableBps) external onlyOwner {
+        if (newTargetStableBps > BPS) revert SplitOutOfRange();
+        if (address(basket) != address(0) && basket.totalValueUsd() != 0) revert BasketNotEmpty();
+
+        basket = newBasket;
+        targetStableBps = newTargetStableBps;
+        emit BasketUpdated(address(newBasket), newTargetStableBps);
+    }
+
+    function setTargetStableBps(uint16 newTargetStableBps) external onlyOwner {
+        if (newTargetStableBps > BPS) revert SplitOutOfRange();
+        targetStableBps = newTargetStableBps;
+        emit BasketUpdated(address(basket), newTargetStableBps);
+    }
+
     function setBufferBps(uint16 newBufferBps) external onlyOwner {
         if (newBufferBps > BPS) revert BufferTooHigh();
         bufferBps = newBufferBps;
@@ -255,6 +370,17 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
 
     function _sharePrice() internal view returns (uint256) {
         return _convertToAssets(10 ** decimals(), Math.Rounding.Floor);
+    }
+
+    function _stableAssets() internal view returns (uint256) {
+        return _idle() + yieldVault.convertToAssets(yieldVault.balanceOf(address(this)));
+    }
+
+    /// @dev USDG is treated as exactly one dollar. There is no USDG/USD feed on
+    ///      this chain to do better, so the assumption is stated rather than
+    ///      hidden: a depeg misprices the equity leg against the stable leg.
+    function _usdToAssets(uint256 usd) internal view returns (uint256) {
+        return usd / (10 ** (18 - _assetDecimals));
     }
 
     /// @dev Top up idle from the lending vault before paying an exit.
