@@ -39,6 +39,17 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
 
     uint16 internal constant BPS = 10_000;
 
+    /// @notice Worst fill any rebalance may accept against the oracle price.
+    /// @dev A constant, not a setting. `rebalance` lets its caller name the
+    ///      slippage it will tolerate, and at 100% the floor is zero -- a trade
+    ///      routed through a pool priced to suit would hand the vault away and
+    ///      pass every check. The owner sets those pools, so this has to be
+    ///      something the owner cannot raise.
+    ///
+    ///      Ten percent is far above what the basket pools actually cost: a
+    ///      $1,000 trade in the 0.30% tier fills within about 1% of the feed.
+    uint16 internal constant MAX_SLIPPAGE_BPS = 1_000;
+
     /// @notice External ERC-4626 producing the lending yield.
     IERC4626 public immutable yieldVault;
 
@@ -397,7 +408,7 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     {
         _requireAutomation();
         if (address(basket) == address(0)) revert NoBasket();
-        if (maxSlippageBps > BPS) revert SlippageOutOfRange();
+        if (maxSlippageBps > MAX_SLIPPAGE_BPS) revert SlippageOutOfRange();
 
         accrueFee();
 

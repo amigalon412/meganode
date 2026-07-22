@@ -31,6 +31,22 @@ contract ThievingBasket is BasketAdapter {
     }
 }
 
+/// @dev Stands in for a pool priced to suit whoever set it: the swap goes
+///      through, it just returns almost nothing.
+contract RiggedFillBasket is BasketAdapter {
+    constructor(address o, PriceOracle p, address v, address s)
+        BasketAdapter(o, p, v, s, IPoolManager(address(0)))
+    {}
+
+    function buy(address token, uint256 stableIn, uint256 minOut) external override onlyVault returns (uint256) {
+        uint256 honest = (stableIn * 1e12 * 1e18) / oracle.priceUsd(token);
+        uint256 out = honest / 1_000_000;
+        require(out >= minOut, "slippage");
+        MockStock(token).mint(address(this), out);
+        return out;
+    }
+}
+
 /// @dev Fills at exactly the oracle price, so the split is real without a venue.
 contract PerfectFillBasket is BasketAdapter {
     constructor(address o, PriceOracle p, address v, address s)
@@ -111,8 +127,10 @@ contract SecurityTest is Test {
         evil.addConstituent(address(nvda), 10_000);
         // Target zero stable, so the whole balance reads as drift to be traded.
         vault.setBasket(evil, 0);
-        // Slippage is the caller's here, and the owner is a permitted caller.
-        vault.rebalance(address(nvda), type(uint256).max, 10_000);
+        // The slippage ceiling does not help here: this adapter ignores minOut
+        // altogether, which is the point -- a substituted basket is not a
+        // pricing problem.
+        vault.rebalance(address(nvda), type(uint256).max, 1_000);
         vm.stopPrank();
 
         assertEq(usdg.balanceOf(thief), 10_000 * ONE, "owner could not drain");
@@ -121,6 +139,42 @@ contract SecurityTest is Test {
         // Alice still holds every share she was given. They are worth nothing.
         assertGt(vault.balanceOf(alice), 0);
         assertEq(vault.convertToAssets(vault.balanceOf(alice)), 0);
+    }
+
+    // -----------------------------------------------------------------
+    // Finding 4 — an honest, fixed basket is not enough on its own.
+    //
+    // Even if `setBasket` were removed entirely, the owner sets the pool each
+    // constituent trades through, and `rebalance` used to let its caller name
+    // any slippage at all. At 100% the floor is zero, so a trade routed through
+    // a pool priced to suit handed almost everything away and passed every
+    // check. Fixed with a constant ceiling the owner cannot raise; this pins it.
+    // -----------------------------------------------------------------
+
+    function test_Finding4_SlippageCannotBeWidenedToNothing() public {
+        RiggedFillBasket basket =
+            new RiggedFillBasket(owner, oracle, address(vault), address(usdg));
+
+        vm.startPrank(owner);
+        basket.addConstituent(address(nvda), 10_000);
+        vault.setBasket(basket, 0); // everything into stocks
+        vm.stopPrank();
+
+        _deposit(10_000 * ONE);
+
+        // Naming a slippage that would make the oracle price optional is now
+        // rejected outright, by the owner as much as by anyone else.
+        vm.prank(owner);
+        vm.expectRevert(BlurVault.SlippageOutOfRange.selector);
+        vault.rebalance(address(nvda), type(uint256).max, 10_000);
+
+        // And at the widest the vault does allow, a fill worth a millionth of
+        // the oracle price is refused by the slippage floor instead.
+        vm.prank(owner);
+        vm.expectRevert("slippage");
+        vault.rebalance(address(nvda), type(uint256).max, 1_000);
+
+        assertEq(vault.totalAssets(), 10_000 * ONE, "the vault kept its value");
     }
 
     // -----------------------------------------------------------------
