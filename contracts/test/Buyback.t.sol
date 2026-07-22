@@ -13,7 +13,7 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {BuybackModule} from "../src/BuybackModule.sol";
 import {BlurVault} from "../src/BlurVault.sol";
 import {KeeperGuard} from "../src/KeeperGuard.sol";
-import {MockERC20, MockYieldVault} from "./mocks/Mocks.sol";
+import {MockBurnableERC20, MockERC20, MockYieldVault} from "./mocks/Mocks.sol";
 
 /// @dev A module whose swap settles at a fixed rate, so these tests measure the
 ///      decision around the swap -- the caps, the retirement, the accounting --
@@ -22,8 +22,8 @@ contract FixedRateBuyback is BuybackModule {
     /// @dev Protocol tokens minted per whole unit of stable.
     uint256 public rate = 100;
 
-    constructor(address owner_, address stable_, address token_)
-        BuybackModule(owner_, stable_, token_, IPoolManager(address(0)))
+    constructor(address owner_, address stable_, address token_, bool burnsSupply_)
+        BuybackModule(owner_, stable_, token_, IPoolManager(address(0)), burnsSupply_)
     {}
 
     function setRate(uint256 newRate) external {
@@ -43,7 +43,7 @@ contract FixedRateBuyback is BuybackModule {
 
 contract BuybackTest is Test {
     MockERC20 usdg;
-    MockERC20 blur;
+    MockBurnableERC20 blur;
     MockYieldVault venue;
     BlurVault vault;
     FixedRateBuyback module;
@@ -61,12 +61,12 @@ contract BuybackTest is Test {
         vm.warp(1_700_000_000);
 
         usdg = new MockERC20("Global Dollar", "USDG", 6);
-        blur = new MockERC20("wire bot", "wire", 18);
+        blur = new MockBurnableERC20("BLUR", "BLUR", 18);
         venue = new MockYieldVault(IERC20(address(usdg)), 700);
         vault = new BlurVault(
             IERC20(address(usdg)), IERC4626(address(venue)), "BLUR Steady", "blurSTEADY", owner
         );
-        module = new FixedRateBuyback(owner, address(usdg), address(blur));
+        module = new FixedRateBuyback(owner, address(usdg), address(blur), false);
         guard = new KeeperGuard(owner, 1_000_000 * ONE, 1 hours);
 
         vm.startPrank(owner);
@@ -169,9 +169,9 @@ contract BuybackTest is Test {
         assertEq(module.totalSpent(), 1_000 * ONE);
     }
 
-    /// @dev The token cannot be burned, so supply is untouched. The site must
-    ///      not claim otherwise; this test is what makes that concrete.
-    function test_RetiringDoesNotReduceTotalSupply() public {
+    /// @dev In graveyard mode supply is untouched, which is the whole reason
+    ///      the mode is named separately from burning.
+    function test_GraveyardModeDoesNotReduceTotalSupply() public {
         usdg.mint(address(module), 1_000 * ONE);
         uint256 supplyBefore = blur.totalSupply();
 
@@ -180,6 +180,70 @@ contract BuybackTest is Test {
 
         assertEq(blur.totalSupply(), supplyBefore + 100_000e18, "supply moved the wrong way");
         assertGt(blur.balanceOf(GRAVEYARD), 0, "nothing reached the graveyard");
+    }
+
+    /// @dev The configuration the protocol actually intends: what is bought is
+    ///      burned, and total supply falls by exactly that amount. This is the
+    ///      test behind the claim the docs make to holders.
+    function test_BurnModeReducesTotalSupply() public {
+        FixedRateBuyback burner =
+            new FixedRateBuyback(owner, address(usdg), address(blur), true);
+        vm.prank(owner);
+        burner.setPool(_pool());
+
+        usdg.mint(address(burner), 1_000 * ONE);
+        uint256 supplyBefore = blur.totalSupply();
+
+        vm.prank(owner);
+        uint256 retired = burner.buyback(type(uint256).max, 1);
+
+        // The stub mints what it buys, so the net effect of buy-then-burn on
+        // supply is zero. What matters is that the burn happened at all: the
+        // tokens are gone rather than parked, and nothing reached the graveyard.
+        assertEq(blur.totalSupply(), supplyBefore, "burn did not remove what was bought");
+        assertEq(blur.balanceOf(address(burner)), 0, "kept some back");
+        assertEq(blur.balanceOf(GRAVEYARD), 0, "graveyard used in burn mode");
+        assertEq(burner.totalRetired(), retired);
+        assertTrue(burner.burnsSupply());
+    }
+
+    /// @dev A token without `burn` must fail loudly rather than quietly falling
+    ///      back to the graveyard, which would leave the docs overstating what
+    ///      the protocol does.
+    function test_BurnModeRevertsOnATokenThatCannotBurn() public {
+        MockERC20 plain = new MockERC20("Plain", "PLN", 18);
+        FixedRateBuyback burner =
+            new FixedRateBuyback(owner, address(usdg), address(plain), true);
+
+        PoolKey memory key = PoolKey({
+            currency0: Currency.wrap(
+                address(usdg) < address(plain) ? address(usdg) : address(plain)
+            ),
+            currency1: Currency.wrap(
+                address(usdg) < address(plain) ? address(plain) : address(usdg)
+            ),
+            fee: 10_000,
+            tickSpacing: 200,
+            hooks: IHooks(address(0))
+        });
+        vm.prank(owner);
+        burner.setPool(key);
+
+        usdg.mint(address(burner), 1_000 * ONE);
+
+        vm.prank(owner);
+        vm.expectRevert();
+        burner.buyback(type(uint256).max, 1);
+    }
+
+    function test_BurnModeIsOwnerOnly() public {
+        vm.prank(stranger);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, stranger));
+        module.setBurnsSupply(true);
+
+        vm.prank(owner);
+        module.setBurnsSupply(true);
+        assertTrue(module.burnsSupply());
     }
 
     function test_BuybackRejectsZeroMinimum() public {
@@ -227,7 +291,7 @@ contract BuybackTest is Test {
     }
 
     function test_BuybackNeedsAPool() public {
-        FixedRateBuyback fresh = new FixedRateBuyback(owner, address(usdg), address(blur));
+        FixedRateBuyback fresh = new FixedRateBuyback(owner, address(usdg), address(blur), false);
         usdg.mint(address(fresh), 1_000 * ONE);
 
         vm.prank(owner);

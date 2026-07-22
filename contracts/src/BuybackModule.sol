@@ -11,6 +11,10 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {SwapExecutor} from "./SwapExecutor.sol";
 
+interface IERC20Burnable {
+    function burn(uint256 amount) external;
+}
+
 /// @title BuybackModule
 /// @notice Turns performance-fee revenue into the protocol token and retires it.
 ///
@@ -19,16 +23,21 @@ import {SwapExecutor} from "./SwapExecutor.sol";
 ///      this contract as that recipient is all the plumbing there is. From
 ///      there the cycle is redeem shares for USDG, buy the token, retire it.
 ///
-///      Two facts about the token on Robinhood Chain shape this contract, both
-///      read off the deployed bytecode rather than assumed:
+///      A bought token is retired one of two ways, chosen explicitly at deploy
+///      rather than guessed at runtime:
 ///
-///      1. It has no `burn` or `burnFrom`. Supply cannot be reduced by anyone,
-///         including its deployer. Retiring therefore means sending to an
-///         address no one holds the key to, and `totalSupply()` will never
-///         fall. `totalRetired` below is the honest number; the token's own
-///         total supply is not.
-///      2. Transfers to `address(0)` revert with OpenZeppelin's
-///         `ERC20InvalidReceiver`. The graveyard address cannot be zero.
+///      1. `burnsSupply` true: the module calls `burn` on the token, and
+///         `totalSupply` actually falls. This is the intended configuration,
+///         and it requires the token to expose `burn(uint256)`. If it does not,
+///         every buyback reverts -- loudly, rather than quietly falling back to
+///         something weaker than what was promised.
+///      2. `burnsSupply` false: the tokens are sent to an address nobody holds
+///         the key to. This is the only option for a token that cannot be
+///         burned, and supply stays where it is. The destination cannot be
+///         `address(0)`, which OpenZeppelin's ERC-20 refuses with
+///         `ERC20InvalidReceiver`.
+///
+///      `totalRetired` counts both, so it is the figure to quote either way.
 ///
 ///      What this contract deliberately cannot do: it holds no depositor
 ///      funds. Everything that reaches it is fee revenue the owner is already
@@ -58,7 +67,10 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
     /// @notice Largest amount of stable a single buyback may spend.
     uint256 public maxSpendPerCall;
 
-    /// @notice Cumulative token amount sent to the graveyard by this contract.
+    /// @notice True to burn what is bought, false to send it to the graveyard.
+    bool public burnsSupply;
+
+    /// @notice Cumulative token amount retired by this contract, either way.
     uint256 public totalRetired;
 
     /// @notice Cumulative stable spent buying it.
@@ -68,8 +80,9 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
     event GuardUpdated(address guard);
     event PoolSet(address currency0, address currency1, uint24 fee, int24 tickSpacing);
     event MaxSpendUpdated(uint256 maxSpendPerCall);
+    event BurnsSupplyUpdated(bool burnsSupply);
     event FeesCollected(address indexed vault, uint256 shares, uint256 assets);
-    event BoughtBack(uint256 spent, uint256 retired);
+    event BoughtBack(uint256 spent, uint256 retired, bool burned);
     event Swept(address indexed asset, address indexed to, uint256 amount);
 
     error NotAutomation();
@@ -81,12 +94,16 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
     error ZeroMinimum();
     error CannotSweepToGraveyard();
 
-    constructor(address owner_, address stable_, address token_, IPoolManager poolManager_)
-        SwapExecutor(poolManager_)
-        Ownable(owner_)
-    {
+    constructor(
+        address owner_,
+        address stable_,
+        address token_,
+        IPoolManager poolManager_,
+        bool burnsSupply_
+    ) SwapExecutor(poolManager_) Ownable(owner_) {
         stable = stable_;
         token = token_;
+        burnsSupply = burnsSupply_;
         maxSpendPerCall = type(uint256).max;
     }
 
@@ -170,11 +187,15 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
 
         // Retire what was bought, not what was expected: the swap may return
         // more than the minimum, and none of it should be left sitting here.
-        IERC20(token).safeTransfer(GRAVEYARD, retired);
+        if (burnsSupply) {
+            IERC20Burnable(token).burn(retired);
+        } else {
+            IERC20(token).safeTransfer(GRAVEYARD, retired);
+        }
 
         totalRetired += retired;
         totalSpent += spend;
-        emit BoughtBack(spend, retired);
+        emit BoughtBack(spend, retired, burnsSupply);
     }
 
     // ---------------------------------------------------------------------
@@ -209,6 +230,15 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
     function setMaxSpendPerCall(uint256 newMax) external onlyOwner {
         maxSpendPerCall = newMax;
         emit MaxSpendUpdated(newMax);
+    }
+
+    /// @dev Deliberately not auto-detected. Whether the protocol reduces its own
+    ///      supply is a claim the docs make to holders, so it is a decision the
+    ///      owner records on-chain rather than a behaviour that changes silently
+    ///      depending on what the token happens to implement.
+    function setBurnsSupply(bool newBurnsSupply) external onlyOwner {
+        burnsSupply = newBurnsSupply;
+        emit BurnsSupplyUpdated(newBurnsSupply);
     }
 
     /// @notice Recover anything sitting here, including an in-kind redemption

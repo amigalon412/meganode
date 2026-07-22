@@ -26,6 +26,16 @@ contract MockERC20 is ERC20 {
     }
 }
 
+/// @dev A token that can reduce its own supply, which is what $BLUR is meant to
+///      be. `burn(uint256)` is the signature BuybackModule calls.
+contract MockBurnableERC20 is MockERC20 {
+    constructor(string memory n, string memory s, uint8 d) MockERC20(n, s, d) {}
+
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
+}
+
 /// @dev Stand-in for the external lending vault. Pays a fixed APR, but only
 ///      when poked, so tests decide exactly when interest lands.
 contract MockYieldVault is ERC4626 {

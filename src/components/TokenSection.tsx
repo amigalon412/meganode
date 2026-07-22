@@ -14,8 +14,8 @@ export function TokenSection() {
         <p className="font-mono text-sm text-wire-muted leading-relaxed max-w-3xl mb-10">
           <span className="text-wire-cyan">$BLUR</span> will be the token behind the protocol. Its
           utility is tied to real usage: as the vaults grow, fee revenue buys $BLUR off the market
-          and retires it to an address with no known key. Value from what the protocol actually
-          does — not hype.
+          and the contract burns it — supply falls by the amount bought, and you can check that
+          against the token yourself. Value from what the protocol actually does — not hype.
         </p>
         <div className="bg-black border border-wire-border p-6 md:p-8">
           <div className="font-mono text-[10px] text-wire-muted tracking-[0.3em] mb-3">

@@ -45,7 +45,7 @@ contract BuybackForkTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.envOr("ROBINHOOD_RPC", vm.rpcUrl("robinhood")));
-        module = new BuybackModule(owner, address(usdg), STAND_IN, POOL_MANAGER);
+        module = new BuybackModule(owner, address(usdg), STAND_IN, POOL_MANAGER, false);
     }
 
     /// @dev USDG/token, the standard 1% tier. USDG sorts below the token, so it
@@ -137,7 +137,7 @@ contract BuybackForkTest is Test {
         for (uint256 i = 0; i < sizes.length; i++) {
             uint256 snapshot = vm.snapshotState();
 
-            BuybackModule fresh = new BuybackModule(owner, address(usdg), STAND_IN, POOL_MANAGER);
+            BuybackModule fresh = new BuybackModule(owner, address(usdg), STAND_IN, POOL_MANAGER, false);
             vm.prank(owner);
             fresh.setPool(_onePercentPool());
 
