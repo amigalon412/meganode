@@ -46,7 +46,7 @@ export const STRATEGIES: Strategy[] = [
     short: "YIELD PLUS A SLICE OF THE MARKET",
     barClass: "w-[60%]",
     description:
-      "60% earning yield, 40% in a curated tokenized-stock basket (NVDA · SPY · AAPL · TSLA), auto-rebalanced.",
+      "60% earning yield, 40% in a curated basket of stock tokens (NVDA · AAPL · TSLA · AMZN), auto-rebalanced.",
     tvlUsd: 71120,
     rows: [
       { label: "USDG yield", pct: "60%" },

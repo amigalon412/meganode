@@ -32,7 +32,7 @@ export const DOC_GROUPS: DocGroup[] = [
         slug: "overview",
         title: "Overview",
         intro: [
-          "BLUR is an auto-yield vault that runs on Robinhood Chain. You put a stablecoin in once; from that moment the vault does the work — it lends the balance out for real interest, moves a slice of it into a curated basket of tokenized equities, and keeps pulling itself back to whatever split you picked.",
+          "BLUR is an auto-yield vault that runs on Robinhood Chain. You put a stablecoin in once; from that moment the vault does the work — it lends the balance out for real interest, moves a slice of it into a curated basket of tokenized stock tokens, and keeps pulling itself back to whatever split you picked.",
           "Nothing about that requires you to hand over control. Your position is a token balance at your own address, and the exit path is open to you at any block.",
         ],
         sections: [
@@ -670,7 +670,7 @@ export const DOC_GROUPS: DocGroup[] = [
                 items: [
                   {
                     lead: "No admin transfer path.",
-                    text: "There is no function that lets an owner move user assets to an arbitrary address. Not a disabled one — an absent one.",
+                    text: "There is no function that lets an owner move user assets to an arbitrary address. Not a disabled one — an absent one. This is a claim about our contracts; it does not bind the issuer of an asset we hold.",
                   },
                   {
                     lead: "Exit cannot be paused.",
@@ -692,6 +692,10 @@ export const DOC_GROUPS: DocGroup[] = [
             id: "custody",
             title: "A note on custody",
             blocks: [
+              {
+                type: "note",
+                text: "The equity leg is the exception, and it is not a small one. Stock tokens let their issuer pause transfers, burn balances and block addresses. Nobody can take your shares in this vault, but the assets behind them are not beyond the issuer's reach. Only the lending leg is free of that.",
+              },
               {
                 type: "p",
                 text: "If you sign in with a social login, an embedded wallet is created for you and the provider holds a key share. That is a real trade-off and we would rather name it than hide it: it removes the seed phrase you can lose, and it adds a party to the signing process. Connect your own signer if you would rather not make that trade. Either way the protocol's guarantee is unchanged, because it is a statement about the contracts, not about where your key lives.",
@@ -793,8 +797,16 @@ export const DOC_GROUPS: DocGroup[] = [
                     text: "The yield leg inherits whatever the underlying money market is exposed to, including bad debt and utilisation spikes that delay withdrawals.",
                   },
                   {
-                    lead: "Tokenized equity risk.",
-                    text: "You hold a token that tracks an instrument. Issuer failure, redemption mechanics and regulatory action are all live risks that have nothing to do with the share price moving.",
+                    lead: "Stock tokens are debt, not equity.",
+                    text: "Robinhood's stock tokens are tokenized debt securities. Holding one gives no voting rights, no shareholder rights and no claim on the underlying share — only exposure to its price, backed by the issuer.",
+                  },
+                  {
+                    lead: "The issuer can freeze or destroy the position.",
+                    text: "The token contracts expose pause, adminBurn and blockAccounts. The issuer can halt all transfers, burn tokens out of any holder including this vault, and block a specific address. Read on-chain, not inferred.",
+                  },
+                  {
+                    lead: "Splits are applied by a multiplier.",
+                    text: "A stock split changes a uiMultiplier on its own schedule, with no transaction from anyone here. The vault halts valuation until an operator confirms the change rather than risking a share price that is wrong by the split ratio.",
                   },
                   {
                     lead: "Liquidity risk.",

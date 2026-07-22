@@ -10,7 +10,7 @@ const cards: AboutCard[] = [
   },
   {
     title: "CURATED STOCK BASKET",
-    body: "A slice of your balance grows into tokenized equities (NVDA · SPY · AAPL · TSLA), not random tokens.",
+    body: "A slice of your balance grows into tokenized stock tokens (NVDA · AAPL · TSLA · AMZN), not random tokens.",
   },
   {
     title: "AUTO-REBALANCED",

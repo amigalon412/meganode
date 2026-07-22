@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Foundry dependencies and build output. Vendored third-party Solidity
+    // repos ship their own JS tooling, which has no business being linted
+    // against this project's rules.
+    "contracts/lib/**",
+    "contracts/out/**",
+    "contracts/cache/**",
   ]),
 ]);
 
