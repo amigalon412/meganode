@@ -73,12 +73,55 @@ roughly $1.2M on one side. Real liquidity exists, and the venue is Uniswap v4,
 so trading goes through the singleton with hook-aware routing rather than a
 per-pair pool.
 
-## Still unknown: the price feed
+## Price feeds: Chainlink, and they exist
 
-Nothing here settles where a trustworthy USD price comes from. The token has
-`oraclePaused` / `pauseOracle`, implying an oracle relationship somewhere, but
-the feed itself has not been located.
+Chainlink is deployed here. The Morpho oracles are `MorphoChainlinkOracleV2`
+wrapping standard `EACAggregatorProxy` feeds, and there are around fifty of
+them on the chain — including the equities.
 
-The pool price must not be used directly for NAV: it is the same pool we would
-trade against, which makes it manipulable by anyone willing to move it for one
-block. This is the open question that gates the second leg.
+All are 8 decimals and expose the usual `latestRoundData()`.
+
+| Feed | Address | Price when read |
+|---|---|---|
+| RHNVDA / USD | `0x379EC4f7C378F34a1B47E4F3cbeBCbAC3E8E9F15` | $206.27 |
+| Robinhood AAPL / USD | `0x6B22A786bAa607d76728168703a39Ea9C99f2cD0` | $324.19 |
+| RHTSLA / USD | `0x4A1166a659A55625345e9515b32adECea5547C38` | $380.13 |
+| RHSPY / USD | `0x319724394D3A0e3669269846abE664Cd621f9f6A` | $747.06 |
+
+Also present: AMZN, GOOGL, META, MSFT, QQQ, PLTR, ORCL, SPCX, COIN, RKLB, BABA,
+INTC, AMD, SNDK, MU, DELL, CRCL, CRWV, SLV, USO, SGOV, plus LINK/USD and
+USDT/USD.
+
+**An SPY feed exists even though no SPY token was found.** A feed is not a
+tradable asset; do not infer the basket from the feed list.
+
+Most feeds appear at two addresses with identical values. Establish which is
+canonical before hardcoding one.
+
+### Staleness is the real constraint
+
+Read at 00:35 UTC, with US markets closed:
+
+| Feed | Age |
+|---|---|
+| LINK / USD | 15 min |
+| AAPL, TSLA | 29 min |
+| RHNVDA | 1 h 51 min |
+| USDT / USD | 4 h 53 min |
+| RHSPY | 10 h 7 min |
+
+Two consequences for the design:
+
+1. **One global staleness threshold will not work.** A limit tight enough for
+   AAPL rejects SPY permanently. Thresholds have to be per feed, set from each
+   feed's observed heartbeat rather than guessed.
+
+2. **Overnight, every equity price is stale by construction.** That is correct
+   behaviour, not a fault — the underlying market is shut. It means NAV outside
+   session hours is marked at the last print, and rebalancing must refuse to
+   run rather than trade against a price nobody is maintaining. This is the
+   concrete mechanism behind what `docs/market-hours` already promises.
+
+The pool price still must not be used for NAV: it is the pool we would trade
+against, so anyone willing to move it for one block can move our accounting.
+Chainlink for valuation, the pool only for execution.
