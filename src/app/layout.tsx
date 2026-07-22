@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { VT323, Share_Tech_Mono } from "next/font/google";
+import { Web3Provider } from "@/components/providers/Web3Provider";
 import "./globals.css";
 
 const vt323 = VT323({
@@ -64,7 +65,9 @@ export default function RootLayout({
       lang="en"
       className={`${vt323.variable} ${shareTechMono.variable} dark`}
     >
-      <body>{children}</body>
+      <body>
+        <Web3Provider>{children}</Web3Provider>
+      </body>
     </html>
   );
 }

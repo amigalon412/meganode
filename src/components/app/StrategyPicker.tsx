@@ -1,19 +1,16 @@
 "use client";
 
-import {
-  BAR_FILL,
-  BAR_TRACK,
-  formatUsd,
-  STRATEGIES,
-  type StrategyId,
-} from "@/lib/strategies";
+import { formatUsdg } from "@/hooks/useVault";
+import { BAR_FILL, BAR_TRACK, STRATEGIES, type StrategyId } from "@/lib/strategies";
 
 interface StrategyPickerProps {
   selected: StrategyId;
   onSelect: (id: StrategyId) => void;
+  /** Live TVL per vault. A strategy missing from the map has no deployment. */
+  tvl: Partial<Record<StrategyId, bigint>>;
 }
 
-export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
+export function StrategyPicker({ selected, onSelect, tvl }: StrategyPickerProps) {
   return (
     <section className="border border-wire-border bg-black p-7 md:p-9">
       <div className="flex items-baseline justify-between mb-5">
@@ -90,7 +87,9 @@ export function StrategyPicker({ selected, onSelect }: StrategyPickerProps) {
               <div className="flex items-baseline justify-between gap-4 font-mono text-xs tracking-[0.2em]">
                 <span className="text-wire-muted truncate">{s.short}</span>
                 <span className="text-wire-muted whitespace-nowrap">
-                  {formatUsd(s.tvlUsd)} TVL
+                  {tvl[s.id] === undefined
+                    ? "NOT DEPLOYED"
+                    : `${formatUsdg(tvl[s.id]!, 0)} TVL`}
                 </span>
               </div>
             </button>

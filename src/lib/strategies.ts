@@ -15,7 +15,6 @@ export interface Strategy {
   /** Width class for the filled half of the picker's allocation bar. */
   barClass: string;
   description: string;
-  tvlUsd: number;
   rows: { label: string; pct: string }[];
 }
 
@@ -32,7 +31,6 @@ export const STRATEGIES: Strategy[] = [
     barClass: "w-full",
     description:
       "All stablecoin. Your USDG earns real on-chain lending yield. No stocks, no lockups.",
-    tvlUsd: 78400,
     rows: [{ label: "USDG yield", pct: "100%" }],
   },
   {
@@ -47,7 +45,6 @@ export const STRATEGIES: Strategy[] = [
     barClass: "w-[60%]",
     description:
       "60% earning yield, 40% in a curated basket of stock tokens (NVDA · AAPL · TSLA · AMZN), auto-rebalanced.",
-    tvlUsd: 71120,
     rows: [
       { label: "USDG yield", pct: "60%" },
       { label: "Stocks", pct: "40%" },
@@ -65,15 +62,12 @@ export const STRATEGIES: Strategy[] = [
     barClass: "w-[30%]",
     description:
       "30% yield floor, 70% tokenized stocks. For savers who want their idle cash to chase the market.",
-    tvlUsd: 35400,
     rows: [
       { label: "USDG yield", pct: "30%" },
       { label: "Stocks", pct: "70%" },
     ],
   },
 ];
-
-export const TOTAL_TVL_USD = STRATEGIES.reduce((sum, s) => sum + s.tvlUsd, 0);
 
 /**
  * More block characters than any bar can show — the bar's container clips them,

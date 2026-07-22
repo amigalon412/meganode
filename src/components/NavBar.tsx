@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ConnectButton } from "@/components/ConnectButton";
 import { XIcon } from "@/components/icons";
 
 export function NavBar() {
@@ -55,9 +56,10 @@ export function NavBar() {
         >
           BUY $BLUR
         </a>
-        <button className="flex items-center gap-2 border border-wire-cyan text-wire-cyan font-mono text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black transition-all disabled:opacity-30 tracking-widest whitespace-nowrap">
-          CONNECT<span className="hidden sm:inline"> WALLET</span>
-        </button>
+        <ConnectButton
+          label="CONNECT"
+          className="flex items-center gap-2 border border-wire-cyan text-wire-cyan text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black disabled:opacity-30 whitespace-nowrap"
+        />
       </div>
     </nav>
   );

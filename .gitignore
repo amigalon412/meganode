@@ -54,3 +54,6 @@ yarn-error.log*
 
 # Local temp files
 temp/
+
+# Playwright MCP scratch output
+.playwright-mcp/

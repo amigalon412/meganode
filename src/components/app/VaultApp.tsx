@@ -1,36 +1,54 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@/components/ConnectButton";
 import { DepositPanel } from "@/components/app/DepositPanel";
 import { EmptyCard } from "@/components/app/EmptyCard";
 import { StrategyPicker } from "@/components/app/StrategyPicker";
+import { useMounted } from "@/hooks/useMounted";
 import {
-  formatUsd,
-  STRATEGIES,
-  TOTAL_TVL_USD,
-  type StrategyId,
-} from "@/lib/strategies";
+  formatUsdg,
+  useTotalValueLocked,
+  useUsdg,
+  useVault,
+} from "@/hooks/useVault";
+import { NOTHING_DEPLOYED } from "@/lib/chain";
+import { STRATEGIES, type StrategyId } from "@/lib/strategies";
 
 export function VaultApp() {
   const [selected, setSelected] = useState<StrategyId>("balanced");
   const strategy = STRATEGIES.find((s) => s.id === selected) ?? STRATEGIES[1];
 
+  const mounted = useMounted();
+  const { isConnected } = useAccount();
+  const vault = useVault(selected);
+  const { total, perVault } = useTotalValueLocked();
+  const { balance } = useUsdg(vault.address);
+
+  // Until hydration the wallet is unknown, so every wallet-derived figure has
+  // to render as blank rather than as a value the server could not have known.
+  const live = mounted && isConnected;
+
   const stats = [
     {
       label: "TOTAL VALUE LOCKED",
-      value: formatUsd(TOTAL_TVL_USD),
-      sub: "ACROSS 3 VAULTS",
+      value: total === undefined ? "—" : formatUsdg(total, 0),
+      sub: NOTHING_DEPLOYED ? "NO VAULT DEPLOYED YET" : "ACROSS 3 VAULTS",
       lit: true,
     },
     {
       label: "YOUR POSITION",
-      value: "—",
+      value:
+        live && vault.positionAssets !== undefined
+          ? formatUsdg(vault.positionAssets)
+          : "—",
       sub: `IN ${strategy.name}`,
       lit: false,
     },
     {
       label: "WALLET",
-      value: "—",
+      value: live && balance !== undefined ? formatUsdg(balance) : "—",
       sub: "USDG AVAILABLE",
       lit: false,
     },
@@ -48,6 +66,19 @@ export function VaultApp() {
         <h1 className="font-mono text-3xl md:text-5xl text-wire-cyan glow-cyan mb-10 leading-tight">
           Put your cash to work.
         </h1>
+
+        {NOTHING_DEPLOYED && (
+          <div className="border border-wire-cyan/40 bg-wire-card px-7 py-5 mb-8">
+            <div className="font-mono text-sm text-wire-cyan tracking-[0.25em] mb-2">
+              ⚠ NO CONTRACTS DEPLOYED
+            </div>
+            <div className="font-mono text-xs text-wire-muted leading-relaxed">
+              The vaults are written and tested but not yet live on Robinhood
+              Chain. Nothing on this page can take a deposit, and every figure
+              reads as blank rather than pretending otherwise.
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-wire-border border border-wire-border mb-8">
           {stats.map((s) => (
@@ -72,12 +103,24 @@ export function VaultApp() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 items-start">
           <div className="space-y-8">
-            <StrategyPicker selected={selected} onSelect={setSelected} />
+            <StrategyPicker
+              selected={selected}
+              onSelect={setSelected}
+              tvl={perVault}
+            />
 
             <EmptyCard
               title="YOUR POSITION"
               badge={strategy.name}
-              body="Connect a wallet to see your balance, allocation and live value."
+              body={
+                live
+                  ? vault.address === null
+                    ? "This strategy has no vault deployed yet."
+                    : vault.shares
+                      ? `${formatUsdg(vault.positionAssets ?? 0n)} across ${strategy.split} stable/stocks.`
+                      : "No shares in this vault yet."
+                  : "Connect a wallet to see your balance, allocation and live value."
+              }
             />
 
             <EmptyCard
@@ -86,12 +129,7 @@ export function VaultApp() {
               body="Top up toward a target on autopilot. Connect a wallet to set it up."
               caption="PERMISSIONLESS · MOVES ONLY USDG YOU APPROVE · CAPPED AT YOUR TARGET"
             >
-              <button
-                type="button"
-                className="w-full font-mono text-sm text-wire-cyan border border-wire-border py-3.5 mt-5 tracking-widest hover:border-wire-cyan hover:glow-cyan transition-all"
-              >
-                CONNECT WALLET
-              </button>
+              <ConnectButton className="w-full text-sm text-wire-cyan border border-wire-border py-3.5 mt-5 hover:border-wire-cyan hover:glow-cyan" />
             </EmptyCard>
           </div>
 
