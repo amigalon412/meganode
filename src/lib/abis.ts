@@ -1331,7 +1331,12 @@ export const blurVaultAbi = [
   },
   {
     "type": "error",
-    "name": "BasketNotEmpty",
+    "name": "BasketAlreadySet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BasketNotBound",
     "inputs": []
   },
   {
@@ -1570,6 +1575,11 @@ export const blurVaultAbi = [
   {
     "type": "error",
     "name": "SplitOutOfRange",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VaultInUse",
     "inputs": []
   },
   {

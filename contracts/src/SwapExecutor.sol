@@ -63,16 +63,13 @@ abstract contract SwapExecutor is IUnlockCallback {
             IPoolManager.SwapParams({
                 zeroForOne: req.zeroForOne,
                 amountSpecified: -int256(req.amountIn),
-                sqrtPriceLimitX96: req.zeroForOne
-                    ? TickMath.MIN_SQRT_PRICE + 1
-                    : TickMath.MAX_SQRT_PRICE - 1
+                sqrtPriceLimitX96: req.zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1
             }),
             ""
         );
 
-        (Currency input, Currency output) = req.zeroForOne
-            ? (req.key.currency0, req.key.currency1)
-            : (req.key.currency1, req.key.currency0);
+        (Currency input, Currency output) =
+            req.zeroForOne ? (req.key.currency0, req.key.currency1) : (req.key.currency1, req.key.currency0);
 
         int256 inputDelta = req.zeroForOne ? delta.amount0() : delta.amount1();
         int256 outputDelta = req.zeroForOne ? delta.amount1() : delta.amount0();

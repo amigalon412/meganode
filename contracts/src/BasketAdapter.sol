@@ -183,7 +183,12 @@ contract BasketAdapter is Ownable, SwapExecutor {
     // ---------------------------------------------------------------------
 
     /// @notice Spend stablecoin already sitting here on `token`.
-    function buy(address token, uint256 stableIn, uint256 minOut) external virtual onlyVault returns (uint256 received) {
+    function buy(address token, uint256 stableIn, uint256 minOut)
+        external
+        virtual
+        onlyVault
+        returns (uint256 received)
+    {
         if (!constituents[token].set) revert UnknownToken(token);
         uint256 have = IERC20(stable).balanceOf(address(this));
         if (have < stableIn) revert InsufficientStable(have, stableIn);
@@ -193,7 +198,12 @@ contract BasketAdapter is Ownable, SwapExecutor {
     }
 
     /// @notice Sell `amountIn` of `token` and forward the proceeds to the vault.
-    function sell(address token, uint256 amountIn, uint256 minOut) external virtual onlyVault returns (uint256 stableOut) {
+    function sell(address token, uint256 amountIn, uint256 minOut)
+        external
+        virtual
+        onlyVault
+        returns (uint256 stableOut)
+    {
         if (!constituents[token].set) revert UnknownToken(token);
 
         stableOut = _swapVia(token, token, amountIn, minOut);
@@ -208,10 +218,7 @@ contract BasketAdapter is Ownable, SwapExecutor {
         if (amount > 0) IERC20(stable).safeTransfer(vault, amount);
     }
 
-    function _swapVia(address token, address inputToken, uint256 amountIn, uint256 minOut)
-        internal
-        returns (uint256)
-    {
+    function _swapVia(address token, address inputToken, uint256 amountIn, uint256 minOut) internal returns (uint256) {
         PoolKey memory key = poolKeys[token];
         if (Currency.unwrap(key.currency0) == address(0) && Currency.unwrap(key.currency1) == address(0)) {
             revert NoPool(token);

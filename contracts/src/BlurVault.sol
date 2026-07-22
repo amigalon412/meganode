@@ -23,17 +23,18 @@ import {BasketAdapter} from "./BasketAdapter.sol";
 ///      wrong. No caller can move another holder's *shares*: there is no such
 ///      function, and the keeper cannot send assets anywhere of its choosing.
 ///
-///      The owner is a different matter. `setBasket` accepts any address, and
-///      `rebalance` then hands that contract the stable it is told to trade
-///      with. An owner who points the vault at an adapter they wrote can take
-///      the deposits, and no check here can tell an honest adapter from a
-///      dishonest one. `SecurityTest.test_Finding1_OwnerCanDrainThroughASubstitutedBasket`
-///      demonstrates it.
+///      The owner used to be a different matter: `setBasket` accepted any
+///      address, and `rebalance` handed that contract the stable to trade with,
+///      so an owner could substitute an adapter they wrote and take the
+///      deposits. That is closed. The basket can be set once, only before any
+///      share exists, and the slippage a rebalance may accept is a constant
+///      rather than an argument -- so no owner action moves assets to an
+///      address of its choosing.
 ///
-///      So the honest claim is narrower than "there is no admin path": the
-///      owner key is trusted with the deposits, and the protection has to come
-///      from what holds that key -- a timelock, a multisig -- not from this
-///      contract.
+///      What the owner still holds is the ability to churn: it can move the
+///      target split and make the vault trade, losing spread each time, and it
+///      can point a constituent at a different pool for the same pair. Both are
+///      bounded by MAX_SLIPPAGE_BPS. Costly if abused, not a theft.
 contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -98,7 +99,9 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     );
 
     error AssetMismatch();
-    error BasketNotEmpty();
+    error BasketAlreadySet();
+    error BasketNotBound();
+    error VaultInUse();
     error SplitOutOfRange();
     error NoBasket();
     error WithinBand();
@@ -108,13 +111,11 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     error ZeroFeeRecipient();
     error NotAutomation();
 
-    constructor(
-        IERC20 asset_,
-        IERC4626 yieldVault_,
-        string memory name_,
-        string memory symbol_,
-        address owner_
-    ) ERC20(name_, symbol_) ERC4626(asset_) Ownable(owner_) {
+    constructor(IERC20 asset_, IERC4626 yieldVault_, string memory name_, string memory symbol_, address owner_)
+        ERC20(name_, symbol_)
+        ERC4626(asset_)
+        Ownable(owner_)
+    {
         if (yieldVault_.asset() != address(asset_)) revert AssetMismatch();
         yieldVault = yieldVault_;
         bufferBps = 500;
@@ -191,12 +192,21 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     function maxWithdraw(address owner) public view override returns (uint256) {
         uint256 position = super.maxWithdraw(owner);
         uint256 stable = _stableAssets();
+        if (stable >= totalAssets()) return position;
         return position < stable ? position : stable;
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
         uint256 shares = super.maxRedeem(owner);
-        uint256 payable_ = _convertToShares(_stableAssets(), Math.Rounding.Floor);
+        uint256 stable = _stableAssets();
+
+        // With no equity leg there is nothing to cap, and saying so explicitly
+        // matters: converting the whole balance to shares and back rounds down,
+        // so the cap would land one unit under a holder's balance and refuse
+        // the one redemption that should always work -- all of it.
+        if (stable >= totalAssets()) return shares;
+
+        uint256 payable_ = _convertToShares(stable, Math.Rounding.Floor);
         return shares < payable_ ? shares : payable_;
     }
 
@@ -238,9 +248,8 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         if (feeAssets > 0 && assets > feeAssets) {
             // Shares worth exactly feeAssets once minted, allowing for the
             // virtual shares and assets the base contract adds.
-            feeShares = Math.mulDiv(
-                feeAssets, supply + 10 ** _decimalsOffset(), assets + 1 - feeAssets, Math.Rounding.Floor
-            );
+            feeShares =
+                Math.mulDiv(feeAssets, supply + 10 ** _decimalsOffset(), assets + 1 - feeAssets, Math.Rounding.Floor);
             if (feeShares > 0) _mint(feeRecipient, feeShares);
         }
 
@@ -507,12 +516,34 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         emit Recalled(recalled);
     }
 
-    /// @notice Attach the equity leg and set the target split.
-    /// @dev Detaching requires the basket to be empty first, so a position can
-    ///      never be stranded in an adapter the vault has stopped counting.
+    /// @notice Attach the equity leg and set the target split. Once only.
+    ///
+    /// @dev This used to be changeable, and that was the whole of the drain:
+    ///      an owner could point the vault at an adapter they wrote and a
+    ///      rebalance would hand it the deposits. No check can distinguish an
+    ///      honest adapter from a dishonest one, so the answer is to make the
+    ///      choice unrepeatable rather than to police it.
+    ///
+    ///      Two conditions, and the second matters as much as the first: the
+    ///      basket must be unset, and the vault must have issued no shares.
+    ///      Without the share check an owner could take deposits first and
+    ///      substitute afterwards, which is the same attack with a delay.
+    ///      Together they mean the basket is fixed before anyone can be exposed
+    ///      to it, and changing the equity leg later means a new vault.
+    ///
+    ///      The adapter is checked to already point back at this vault and at
+    ///      the same asset. That catches a misdeployment, not a malicious one.
+    ///
+    ///      Known nuisance: anyone can deposit into a freshly deployed vault
+    ///      before its basket is set and leave it lending-only for good. It
+    ///      costs them a deposit, it strands nothing, and the remedy is to
+    ///      deploy again -- which is why this is a nuisance and not a hole.
     function setBasket(BasketAdapter newBasket, uint16 newTargetStableBps) external onlyOwner {
         if (newTargetStableBps > BPS) revert SplitOutOfRange();
-        if (address(basket) != address(0) && basket.totalValueUsd() != 0) revert BasketNotEmpty();
+        if (address(basket) != address(0)) revert BasketAlreadySet();
+        if (totalSupply() != 0) revert VaultInUse();
+        if (newBasket.vault() != address(this)) revert BasketNotBound();
+        if (newBasket.stable() != asset()) revert AssetMismatch();
 
         basket = newBasket;
         targetStableBps = newTargetStableBps;
@@ -555,13 +586,11 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /// @dev Top up idle from the lending vault before paying an exit.
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal override nonReentrant {
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        override
+        nonReentrant
+    {
         uint256 idle = _idle();
         if (idle < assets) {
             uint256 missing = assets - idle;
@@ -571,12 +600,7 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
-    function _deposit(
-        address caller,
-        address receiver,
-        uint256 assets,
-        uint256 shares
-    ) internal override nonReentrant {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override nonReentrant {
         super._deposit(caller, receiver, assets, shares);
     }
 }

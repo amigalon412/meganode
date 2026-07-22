@@ -94,13 +94,10 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
     error ZeroMinimum();
     error CannotSweepToGraveyard();
 
-    constructor(
-        address owner_,
-        address stable_,
-        address token_,
-        IPoolManager poolManager_,
-        bool burnsSupply_
-    ) SwapExecutor(poolManager_) Ownable(owner_) {
+    constructor(address owner_, address stable_, address token_, IPoolManager poolManager_, bool burnsSupply_)
+        SwapExecutor(poolManager_)
+        Ownable(owner_)
+    {
         stable = stable_;
         token = token_;
         burnsSupply = burnsSupply_;
@@ -120,12 +117,7 @@ contract BuybackModule is SwapExecutor, Ownable, ReentrancyGuard {
     /// @dev Redeems through the vault's ordinary exit, so it is subject to the
     ///      same refusal to price a stale basket that protects depositors. The
     ///      fee stream waits rather than being valued on a bad price.
-    function collect(address vault, uint256 shares)
-        external
-        onlyAutomation
-        nonReentrant
-        returns (uint256 assets)
-    {
+    function collect(address vault, uint256 shares) external onlyAutomation nonReentrant returns (uint256 assets) {
         if (!isVault[vault]) revert VaultNotAllowed();
 
         uint256 held = IERC20(vault).balanceOf(address(this));

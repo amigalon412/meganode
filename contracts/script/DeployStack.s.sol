@@ -76,11 +76,7 @@ contract DeployStack is Script {
         stack.oracle = new PriceOracle(deployer);
         stack.guard = new KeeperGuard(deployer, cfg.maxDeployPerCall, cfg.cooldown);
         stack.vault = new BlurVault(
-            IERC20(RobinhoodChain.USDG),
-            IERC4626(RobinhoodChain.STEAK_USDG),
-            cfg.name,
-            cfg.symbol,
-            deployer
+            IERC20(RobinhoodChain.USDG), IERC4626(RobinhoodChain.STEAK_USDG), cfg.name, cfg.symbol, deployer
         );
 
         stack.vault.setGuard(address(stack.guard));
@@ -117,12 +113,7 @@ contract DeployStack is Script {
     ///      USDG pool carries a hook and holds no liquidity, so it cannot be
     ///      traded the way the other four are.
     function _registerBasket(Stack memory stack) internal {
-        address[4] memory tokens = [
-            RobinhoodChain.NVDA,
-            RobinhoodChain.AAPL,
-            RobinhoodChain.TSLA,
-            RobinhoodChain.AMZN
-        ];
+        address[4] memory tokens = [RobinhoodChain.NVDA, RobinhoodChain.AAPL, RobinhoodChain.TSLA, RobinhoodChain.AMZN];
         address[4] memory feeds = [
             RobinhoodChain.NVDA_USD_FEED,
             RobinhoodChain.AAPL_USD_FEED,

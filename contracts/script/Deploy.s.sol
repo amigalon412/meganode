@@ -60,14 +60,9 @@ contract Deploy is Script {
     ///      `deployer` is explicit rather than read from `msg.sender`, which
     ///      differs between a broadcast and a plain call and would silently
     ///      leave the wiring calls coming from an address that owns nothing.
-    function deploy(DeployConfig memory cfg, address deployer)
-        public
-        returns (BlurVault vault, KeeperGuard guard)
-    {
+    function deploy(DeployConfig memory cfg, address deployer) public returns (BlurVault vault, KeeperGuard guard) {
         guard = new KeeperGuard(deployer, cfg.maxDeployPerCall, cfg.cooldown);
-        vault = new BlurVault(
-            IERC20(cfg.asset), IERC4626(cfg.yieldVault), cfg.name, cfg.symbol, deployer
-        );
+        vault = new BlurVault(IERC20(cfg.asset), IERC4626(cfg.yieldVault), cfg.name, cfg.symbol, deployer);
 
         vault.setGuard(address(guard));
         guard.setVault(address(vault), true);

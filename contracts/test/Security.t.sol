@@ -112,33 +112,63 @@ contract SecurityTest is Test {
     }
 
     // -----------------------------------------------------------------
-    // Finding 1 — the owner can move depositor assets to an address of
-    // their choosing, which the contract's own header denies.
+    // Finding 1 — the owner could move depositor assets to an address of
+    // their choosing.
+    //
+    // `setBasket` accepted any address and `rebalance` handed that contract
+    // the stable to trade with, so an owner could point the vault at an
+    // adapter they wrote and keep the deposits. No pricing rule reaches it:
+    // such an adapter ignores minAmountOut entirely.
+    //
+    // Closed by making the choice unrepeatable. These pin both halves of it.
     // -----------------------------------------------------------------
 
-    function test_Finding1_OwnerCanDrainThroughASubstitutedBasket() public {
+    function test_Finding1_ABasketCannotBeIntroducedAfterDeposits() public {
         _deposit(10_000 * ONE);
-        assertEq(vault.totalAssets(), 10_000 * ONE);
 
         ThievingBasket evil =
             new ThievingBasket(owner, oracle, address(vault), address(usdg), thief);
 
         vm.startPrank(owner);
         evil.addConstituent(address(nvda), 10_000);
-        // Target zero stable, so the whole balance reads as drift to be traded.
+        vm.expectRevert(BlurVault.VaultInUse.selector);
         vault.setBasket(evil, 0);
-        // The slippage ceiling does not help here: this adapter ignores minOut
-        // altogether, which is the point -- a substituted basket is not a
-        // pricing problem.
-        vault.rebalance(address(nvda), type(uint256).max, 1_000);
         vm.stopPrank();
 
-        assertEq(usdg.balanceOf(thief), 10_000 * ONE, "owner could not drain");
-        assertEq(vault.totalAssets(), 0, "vault is empty");
+        assertEq(usdg.balanceOf(thief), 0, "the drain went through");
+        assertEq(vault.totalAssets(), 10_000 * ONE, "the vault kept its value");
+    }
 
-        // Alice still holds every share she was given. They are worth nothing.
-        assertGt(vault.balanceOf(alice), 0);
-        assertEq(vault.convertToAssets(vault.balanceOf(alice)), 0);
+    function test_Finding1_AnHonestBasketCannotBeReplacedLater() public {
+        PerfectFillBasket honest =
+            new PerfectFillBasket(owner, oracle, address(vault), address(usdg));
+        ThievingBasket evil =
+            new ThievingBasket(owner, oracle, address(vault), address(usdg), thief);
+
+        vm.startPrank(owner);
+        honest.addConstituent(address(nvda), 10_000);
+        vault.setBasket(honest, 6_000);
+
+        evil.addConstituent(address(nvda), 10_000);
+        vm.expectRevert(BlurVault.BasketAlreadySet.selector);
+        vault.setBasket(evil, 0);
+        vm.stopPrank();
+
+        assertEq(address(vault.basket()), address(honest), "the basket moved");
+    }
+
+    /// @dev The adapter has to already point back at this vault, which catches
+    ///      a misdeployment before it can hold anything.
+    function test_ABasketBoundToAnotherVaultIsRefused() public {
+        BlurVault other = new BlurVault(
+            IERC20(address(usdg)), IERC4626(address(venue)), "Other", "OTH", owner
+        );
+        PerfectFillBasket foreign =
+            new PerfectFillBasket(owner, oracle, address(other), address(usdg));
+
+        vm.prank(owner);
+        vm.expectRevert(BlurVault.BasketNotBound.selector);
+        vault.setBasket(foreign, 6_000);
     }
 
     // -----------------------------------------------------------------

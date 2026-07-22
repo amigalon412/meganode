@@ -185,14 +185,26 @@ contract TwoLegTest is Test {
     // Attaching and detaching
     // ------------------------------------------------------------------
 
-    function test_BasketCannotBeSwappedOutWhileHoldingAPosition() public {
+    /// @dev The basket is chosen once and never again. Substituting it was the
+    ///      whole of the owner drain, so this is refused outright rather than
+    ///      only while a position is open.
+    function test_BasketCannotBeSwappedOut() public {
         vm.prank(alice);
         vault.deposit(100_000 * ONE, alice);
         _moveToBasket(40_000 * ONE, 200e18);
 
         BasketAdapter other = new BasketAdapter(owner, oracle, address(vault), address(usdg), IPoolManager(address(0)));
         vm.prank(owner);
-        vm.expectRevert(BlurVault.BasketNotEmpty.selector);
+        vm.expectRevert(BlurVault.BasketAlreadySet.selector);
+        vault.setBasket(other, 6_000);
+    }
+
+    /// @dev And an empty vault whose basket is already set is refused too, so
+    ///      emptying it first is not a way back in.
+    function test_BasketCannotBeSwappedOutEvenWhenEmpty() public {
+        BasketAdapter other = new BasketAdapter(owner, oracle, address(vault), address(usdg), IPoolManager(address(0)));
+        vm.prank(owner);
+        vm.expectRevert(BlurVault.BasketAlreadySet.selector);
         vault.setBasket(other, 6_000);
     }
 
