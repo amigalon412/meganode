@@ -48,14 +48,9 @@ export function NavBar() {
         >
           <XIcon width={15} height={15} className="glow-svg-cyan" />
         </a>
-        <a
-          href="https://app.uniswap.org/swap?chain=robinhood&inputCurrency=NATIVE&outputCurrency=0x8ecea3d0e648db646d824aa51eedeb16ac3d6878"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 border border-wire-cyan text-wire-cyan glow-cyan font-mono text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black transition-all tracking-widest whitespace-nowrap"
-        >
-          BUY $BLUR
-        </a>
+        {/* The BUY $BLUR button belongs here once a $BLUR token exists. It is
+            absent rather than pointed somewhere plausible: a buy link is the
+            one control on this page that costs money to click. */}
         <ConnectButton
           label="CONNECT"
           className="flex items-center gap-2 border border-wire-cyan text-wire-cyan text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black disabled:opacity-30 whitespace-nowrap"

@@ -12,19 +12,30 @@ import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {BuybackModule} from "../src/BuybackModule.sol";
 import {RobinhoodChain} from "../src/RobinhoodChain.sol";
 
-/// @notice A real buyback, in the real pool, on a fork.
+/// @notice A real buyback through a real Uniswap v4 pool, on a fork.
 ///
-/// @dev The protocol token is listed in 25 v4 pools. Most are traps: fee tiers
-///      of 87%, 89%, even 99.978%, which would consume almost the whole trade.
-///      The deepest pools by raw liquidity pair it against memecoins, not
-///      against USDG. This suite exists to measure what the module can actually
-///      execute, because the unit tests deliberately mock the fill away.
+/// @dev $BLUR does not exist yet, so this exercises the module against an
+///      unrelated token that is already listed against USDG on this chain. It
+///      is a stand-in for the venue, nothing more: none of it is our token, and
+///      no figure here describes $BLUR. What it proves is that the module
+///      settles a real v4 swap and retires what it receives -- the part the
+///      unit tests deliberately mock away.
+///
+///      It also records what a thin market does to a buyback, which is the
+///      thing that should set maxSpendPerCall. This stand-in is listed in 25
+///      pools, most of them traps: fee tiers of 87%, 89%, even 99.978%, which
+///      would keep almost the whole trade. Whichever pool $BLUR eventually
+///      lives in, the module must be pointed at it explicitly and never infer
+///      one.
 contract BuybackForkTest is Test {
     IPoolManager constant POOL_MANAGER = IPoolManager(0x8366a39CC670B4001A1121B8F6A443A643e40951);
-    address constant TOKEN = 0x8ECEA3d0E648DB646d824AA51EedeB16aC3d6878;
+
+    /// @dev Not ours. An arbitrary token with a live USDG pool, standing in for
+    ///      $BLUR until $BLUR exists.
+    address constant STAND_IN = 0x8ECEA3d0E648DB646d824AA51EedeB16aC3d6878;
 
     IERC20 usdg = IERC20(RobinhoodChain.USDG);
-    IERC20 token = IERC20(TOKEN);
+    IERC20 token = IERC20(STAND_IN);
 
     BuybackModule module;
     address owner = makeAddr("owner");
@@ -34,7 +45,7 @@ contract BuybackForkTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.envOr("ROBINHOOD_RPC", vm.rpcUrl("robinhood")));
-        module = new BuybackModule(owner, address(usdg), TOKEN, POOL_MANAGER);
+        module = new BuybackModule(owner, address(usdg), STAND_IN, POOL_MANAGER);
     }
 
     /// @dev USDG/token, the standard 1% tier. USDG sorts below the token, so it
@@ -42,7 +53,7 @@ contract BuybackForkTest is Test {
     function _onePercentPool() internal pure returns (PoolKey memory) {
         return PoolKey({
             currency0: Currency.wrap(RobinhoodChain.USDG),
-            currency1: Currency.wrap(TOKEN),
+            currency1: Currency.wrap(STAND_IN),
             fee: 10_000,
             tickSpacing: 200,
             hooks: IHooks(address(0))
@@ -53,7 +64,7 @@ contract BuybackForkTest is Test {
     function _deepestUsdgPool() internal pure returns (PoolKey memory) {
         return PoolKey({
             currency0: Currency.wrap(RobinhoodChain.USDG),
-            currency1: Currency.wrap(TOKEN),
+            currency1: Currency.wrap(STAND_IN),
             fee: 46_000,
             tickSpacing: 920,
             hooks: IHooks(address(0))
@@ -65,22 +76,25 @@ contract BuybackForkTest is Test {
     }
 
     // -----------------------------------------------------------------
-    // Facts about the token, asserted rather than assumed
+    // The fixture, pinned rather than assumed
     // -----------------------------------------------------------------
 
-    function test_TokenIsWhatWeThinkItIs() public view {
-        assertEq(IERC20Metadata(TOKEN).symbol(), "wire", "symbol changed");
-        assertEq(IERC20Metadata(TOKEN).decimals(), 18);
-        assertEq(IERC20Metadata(TOKEN).totalSupply(), 1_000_000_000e18);
+    /// @dev If the stand-in changes underneath us, every number below stops
+    ///      meaning anything, so this fails first and says why.
+    function test_StandInIsUnchanged() public view {
+        assertEq(IERC20Metadata(STAND_IN).symbol(), "wire", "stand-in changed");
+        assertEq(IERC20Metadata(STAND_IN).decimals(), 18);
+        assertEq(IERC20Metadata(STAND_IN).totalSupply(), 1_000_000_000e18);
     }
 
-    /// @dev There is no burn function, so a retirement can only ever be a
-    ///      transfer. Supply is fixed for everyone including the deployer.
-    function test_TokenCannotBeBurned() public {
-        deal(TOKEN, address(this), 1e18);
+    /// @dev This stand-in has no burn function, which is why the module retires
+    ///      by transfer rather than by burning. If $BLUR ships with a burn, the
+    ///      module can call it instead and supply would genuinely fall.
+    function test_StandInCannotBeBurned() public {
+        deal(STAND_IN, address(this), 1e18);
 
-        (bool ok,) = TOKEN.call(abi.encodeWithSignature("burn(uint256)", 1e18));
-        assertFalse(ok, "token grew a burn function");
+        (bool ok,) = STAND_IN.call(abi.encodeWithSignature("burn(uint256)", 1e18));
+        assertFalse(ok, "stand-in grew a burn function");
 
         // And the zero address is refused, which is why GRAVEYARD is 0xdEaD.
         vm.expectRevert();
@@ -123,7 +137,7 @@ contract BuybackForkTest is Test {
         for (uint256 i = 0; i < sizes.length; i++) {
             uint256 snapshot = vm.snapshotState();
 
-            BuybackModule fresh = new BuybackModule(owner, address(usdg), TOKEN, POOL_MANAGER);
+            BuybackModule fresh = new BuybackModule(owner, address(usdg), STAND_IN, POOL_MANAGER);
             vm.prank(owner);
             fresh.setPool(_onePercentPool());
 
