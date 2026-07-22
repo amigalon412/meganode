@@ -21,6 +21,11 @@ export const robinhoodChain = defineChain({
       url: "https://robinhoodchain.blockscout.com",
     },
   },
+  contracts: {
+    // Multicall3 at its canonical cross-chain address; confirmed deployed here.
+    // Without this viem refuses to batch, and every read becomes its own call.
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
+  },
 });
 
 /** Global Dollar. Six decimals, not eighteen -- do not assume. */
@@ -28,6 +33,29 @@ export const USDG: Address = getAddress(
   "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
 );
 export const USDG_DECIMALS = 6;
+
+/**
+ * Steakhouse USDG, the MetaMorpho vault the lending leg supplies into. Its
+ * share price is where the base yield actually shows up.
+ */
+export const STEAK_USDG: Address = getAddress(
+  "0xBeEff033F34C046626B8D0A041844C5d1A5409dd",
+);
+
+/**
+ * Chainlink USD feeds for the basket, 8 decimals each, confirmed on-chain.
+ *
+ * A feed is not a tradable asset -- SPY has a feed here and no token, which is
+ * exactly the trap that put SPY in the basket copy once. These are listed for
+ * display only.
+ */
+export const STOCK_FEEDS: { symbol: string; feed: Address }[] = [
+  { symbol: "NVDA", feed: getAddress("0x379EC4f7C378F34a1B47E4F3cbeBCbAC3E8E9F15") },
+  { symbol: "AAPL", feed: getAddress("0x6B22A786bAa607d76728168703a39Ea9C99f2cD0") },
+  { symbol: "TSLA", feed: getAddress("0x4A1166a659A55625345e9515b32adECea5547C38") },
+  { symbol: "AMZN", feed: getAddress("0xD5a1508ceD74c084eBf3cBe853e2C968fB2a651C") },
+  { symbol: "AMD", feed: getAddress("0x943A29E7ae51A4798823ca9eEd2ed533B2A22C72") },
+];
 
 /**
  * Reads an address out of the environment, returning null rather than throwing
