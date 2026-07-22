@@ -673,8 +673,8 @@ export const DOC_GROUPS: DocGroup[] = [
                 type: "list",
                 items: [
                   {
-                    lead: "No admin transfer path.",
-                    text: "There is no function that lets an owner move user assets to an arbitrary address. Not a disabled one — an absent one. This is a claim about our contracts; it does not bind the issuer of an asset we hold.",
+                    lead: "No path for anyone but the owner.",
+                    text: "No function lets one holder move another holder's shares, and the keeper cannot send assets to an address of its choosing. The owner is the exception and it is not a small one: it can point the vault at a new basket adapter, and a rebalance then hands that contract the money to trade with. An owner who deploys their own adapter can take the deposits. Nothing in the vault can tell an honest adapter from a dishonest one, so the protection has to be whatever holds the owner key.",
                   },
                   {
                     lead: "Exit cannot be paused.",
@@ -733,7 +733,7 @@ export const DOC_GROUPS: DocGroup[] = [
               },
               {
                 type: "p",
-                text: "These are parameters, not code paths — they can be tightened by governance, but no setting turns them off entirely, and none of them unlocks a transfer to an arbitrary address.",
+                text: "These are parameters, not code paths — they can be tightened by governance, but no setting turns them off entirely. Replacing the basket adapter is the one owner action that does reach the money; see the custody note above.",
               },
             ],
           },
@@ -1013,7 +1013,7 @@ export const DOC_GROUPS: DocGroup[] = [
                   },
                   {
                     lead: "Who can move my funds?",
-                    text: "You. There is no admin path, and the keeper cannot transfer to an arbitrary address.",
+                    text: "You, subject to one exception. The keeper cannot transfer to an address of its choosing and no holder can touch another's shares, but the owner can replace the basket adapter, and that reaches the deposits. Judge the protocol by who holds that key.",
                   },
                   {
                     lead: "What happens if BLUR disappears?",

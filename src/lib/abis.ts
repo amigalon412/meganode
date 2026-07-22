@@ -832,6 +832,19 @@ export const blurVaultAbi = [
   },
   {
     "type": "function",
+    "name": "sweepBasketStable",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "symbol",
     "inputs": [],
     "outputs": [

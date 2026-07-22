@@ -54,12 +54,15 @@ export function DepositPanel({ strategy }: DepositPanelProps) {
     parsed !== null && allowance !== undefined && allowance < parsed;
   const busy = isSigning || isConfirming;
 
+  // Withdrawals are bounded by maxWithdraw, not by the position. With a basket
+  // attached the two differ: only the lending leg can fund a priced exit, and
+  // the remainder leaves through in-kind redemption.
   const insufficient =
     mode === "deposit"
       ? parsed !== null && balance !== undefined && parsed > balance
       : parsed !== null &&
-        vault.positionAssets !== undefined &&
-        parsed > vault.positionAssets;
+        vault.maxWithdraw !== undefined &&
+        parsed > vault.maxWithdraw;
 
   async function submit() {
     if (!vault.address || !account || parsed === null) return;
@@ -140,12 +143,19 @@ export function DepositPanel({ strategy }: DepositPanelProps) {
     },
   ];
 
+  if (mode === "withdraw" && ready) {
+    rows.splice(1, 0, {
+      label: "Withdrawable in USDG",
+      value: vault.maxWithdraw === undefined ? "—" : formatUsdg(vault.maxWithdraw),
+    });
+  }
+
   function actionLabel(): string {
     if (busy) return isConfirming ? "CONFIRMING…" : "CHECK YOUR WALLET…";
     if (!vault.address) return "NOT DEPLOYED";
     if (vault.isPriceable === false) return "PRICING HALTED";
     if (parsed === null) return mode === "deposit" ? "ENTER AMOUNT" : "ENTER AMOUNT";
-    if (insufficient) return "INSUFFICIENT BALANCE";
+    if (insufficient) return mode === "deposit" ? "INSUFFICIENT BALANCE" : "MORE THAN IS WITHDRAWABLE";
     if (mode === "deposit") return needsApproval ? "APPROVE USDG" : "DEPOSIT";
     return "WITHDRAW";
   }
@@ -272,7 +282,7 @@ export function DepositPanel({ strategy }: DepositPanelProps) {
         )}
 
         <div className="font-mono text-xs text-wire-muted text-center tracking-[0.15em] leading-relaxed">
-          NON-CUSTODIAL · NO ADMIN CAN MOVE YOUR FUNDS
+          NON-CUSTODIAL · NOBODY CAN MOVE YOUR SHARES
         </div>
       </div>
     </div>

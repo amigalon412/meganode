@@ -19,9 +19,21 @@ import {BasketAdapter} from "./BasketAdapter.sol";
 ///      and the bounded keeper role are added on top of this, not woven into it —
 ///      `totalAssets()` is the single seam they extend.
 ///
-///      Custody note: there is deliberately no function that moves depositor
-///      assets to an arbitrary address. The owner can only choose how much sits
-///      idle versus earning; it cannot direct funds anywhere else.
+///      Custody note, stated precisely because an earlier version of it was
+///      wrong. No caller can move another holder's *shares*: there is no such
+///      function, and the keeper cannot send assets anywhere of its choosing.
+///
+///      The owner is a different matter. `setBasket` accepts any address, and
+///      `rebalance` then hands that contract the stable it is told to trade
+///      with. An owner who points the vault at an adapter they wrote can take
+///      the deposits, and no check here can tell an honest adapter from a
+///      dishonest one. `SecurityTest.test_Finding1_OwnerCanDrainThroughASubstitutedBasket`
+///      demonstrates it.
+///
+///      So the honest claim is narrower than "there is no admin path": the
+///      owner key is trusted with the deposits, and the protection has to come
+///      from what holds that key -- a timelock, a multisig -- not from this
+///      contract.
 contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -145,18 +157,37 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     // ---------------------------------------------------------------------
     // On withdrawal limits
     //
-    // `maxWithdraw` and `maxRedeem` are deliberately left as inherited. An
-    // earlier version capped them by "available liquidity", but that number is
-    // not knowable here: the venue's own `maxWithdraw` reports zero while
-    // executing full redemptions, so the only figure we can compute is the
-    // value of our position — which is exactly what `totalAssets()` already is.
-    // The cap was therefore identical to the base behaviour and never bound,
-    // while its comment claimed a protection that did not exist.
+    // A priced exit is paid out of the lending leg. Nothing in this contract
+    // sells equity to fund one, so the stable leg is a real ceiling on what
+    // `withdraw` and `redeem` can pay, and ERC-4626 requires these to report an
+    // amount that would not revert.
     //
-    // A real shortfall at the venue surfaces as a revert inside `_withdraw`.
-    // That is the honest failure mode: we cannot know a payout is impossible
-    // until we attempt it.
+    // An earlier version capped by "available liquidity" and was removed for
+    // being dead: it computed the value of our whole position, which is what
+    // the base behaviour already returns. The difference now is the basket. For
+    // a lending-only vault `_stableAssets()` still equals `totalAssets()` and
+    // this cap remains inert, exactly as before; for a vault with an equity leg
+    // it binds, and it is the only thing standing between an integrator and a
+    // reverting withdrawal. Do not remove it again on the strength of the
+    // lending-only case.
+    //
+    // A shortfall at the venue itself is still not knowable in advance — the
+    // venue under-reports its own `maxWithdraw` while executing full
+    // redemptions — so that failure still surfaces as a revert inside
+    // `_withdraw`. Holders past this ceiling exit through `redeemInKind`.
     // ---------------------------------------------------------------------
+
+    function maxWithdraw(address owner) public view override returns (uint256) {
+        uint256 position = super.maxWithdraw(owner);
+        uint256 stable = _stableAssets();
+        return position < stable ? position : stable;
+    }
+
+    function maxRedeem(address owner) public view override returns (uint256) {
+        uint256 shares = super.maxRedeem(owner);
+        uint256 payable_ = _convertToShares(_stableAssets(), Math.Rounding.Floor);
+        return shares < payable_ ? shares : payable_;
+    }
 
     // ---------------------------------------------------------------------
     // Performance fee
@@ -442,6 +473,18 @@ contract BlurVault is ERC4626, Ownable, ReentrancyGuard {
     ///      anything — those stay with the owner. See KeeperGuard.
     function _requireAutomation() internal view {
         if (msg.sender != owner() && msg.sender != guard) revert NotAutomation();
+    }
+
+    /// @notice Recover stablecoin sitting in the adapter back into the vault.
+    /// @dev The adapter values only its constituents, so stable that ends up
+    ///      there -- a donation, a mistaken transfer -- is counted by nobody and
+    ///      would be stuck. The adapter's own sweep is `onlyVault`, which means
+    ///      it is reachable only through this function; without it the recovery
+    ///      path its comment promises does not exist.
+    function sweepBasketStable() external returns (uint256) {
+        _requireAutomation();
+        if (address(basket) == address(0)) revert NoBasket();
+        return basket.sweepStableToVault();
     }
 
     /// @notice Pull everything back out of the lending vault into idle.

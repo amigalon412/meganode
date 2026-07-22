@@ -18,7 +18,7 @@ const cards: AboutCard[] = [
   },
   {
     title: "NON-CUSTODIAL",
-    body: "Shares live at your own address. There is no admin path to move, freeze or seize them.",
+    body: "Shares live at your own address, and nobody can move, freeze or seize them. The owner can still replace the basket adapter — see the risks page.",
   },
   {
     title: "IN-KIND REDEMPTION",

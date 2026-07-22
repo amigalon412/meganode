@@ -28,6 +28,12 @@ export interface VaultView {
   positionAssets: bigint | undefined;
   shares: bigint | undefined;
   /**
+   * The most that can be taken out as USDG. Not the same as the position once
+   * a basket is involved: a priced exit is paid out of the lending leg only, so
+   * the rest has to leave in kind.
+   */
+  maxWithdraw: bigint | undefined;
+  /**
    * False when the oracle cannot price part of the basket -- a stale feed or a
    * stock split the adapter has not acknowledged. Deposits and withdrawals
    * that need a valuation will revert while this is false, so the UI says so
@@ -53,6 +59,11 @@ export function useVault(strategy: StrategyId): VaultView {
         functionName: "balanceOf",
         args: [account ?? "0x0000000000000000000000000000000000000000"],
       },
+      {
+        ...vaultContract,
+        functionName: "maxWithdraw",
+        args: [account ?? "0x0000000000000000000000000000000000000000"],
+      },
     ],
     query: { enabled: Boolean(vault) },
   });
@@ -70,6 +81,7 @@ export function useVault(strategy: StrategyId): VaultView {
     address: vault,
     totalAssets: data?.[0]?.status === "success" ? data[0].result : undefined,
     isPriceable: data?.[1]?.status === "success" ? data[1].result : undefined,
+    maxWithdraw: data?.[3]?.status === "success" ? data[3].result : undefined,
     shares,
     positionAssets:
       positionData?.[0]?.status === "success" ? positionData[0].result : undefined,
