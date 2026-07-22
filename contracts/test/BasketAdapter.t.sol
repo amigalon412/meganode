@@ -5,6 +5,7 @@ import {Test, console2} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BasketAdapter} from "../src/BasketAdapter.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PriceOracle} from "../src/PriceOracle.sol";
 import {MockERC20} from "./mocks/Mocks.sol";
 import {MockAggregator} from "./PriceOracle.t.sol";
@@ -31,6 +32,7 @@ contract MockStock is MockERC20 {
 contract BasketAdapterTest is Test {
     PriceOracle oracle;
     BasketAdapter basket;
+    MockERC20 usdg;
 
     MockStock nvda;
     MockStock aapl;
@@ -44,8 +46,9 @@ contract BasketAdapterTest is Test {
     function setUp() public {
         vm.warp(1_700_000_000);
 
+        usdg = new MockERC20("Global Dollar", "USDG", 6);
         oracle = new PriceOracle(owner);
-        basket = new BasketAdapter(owner, oracle, vault);
+        basket = new BasketAdapter(owner, oracle, vault, address(usdg), IPoolManager(address(0)));
 
         nvda = new MockStock("NVIDIA", "NVDA");
         aapl = new MockStock("Apple", "AAPL");

@@ -12,7 +12,7 @@ contract PriceOracleForkTest is Test {
     address owner = makeAddr("owner");
 
     function setUp() public {
-        vm.createSelectFork(vm.rpcUrl("robinhood"));
+        vm.createSelectFork(vm.envOr("ROBINHOOD_RPC", vm.rpcUrl("robinhood")));
         oracle = new PriceOracle(owner);
 
         vm.startPrank(owner);

@@ -5,7 +5,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 import {PriceOracle} from "./PriceOracle.sol";
+import {SwapExecutor} from "./SwapExecutor.sol";
 
 interface IScaledUIToken {
     function uiMultiplier() external view returns (uint256);
@@ -14,14 +18,12 @@ interface IScaledUIToken {
 /// @title BasketAdapter
 /// @notice Holds the equity side of a vault and reports what it is worth.
 ///
-/// @dev Custody and valuation only. Trading is deliberately not here yet: the
-///      accounting has to be right before anything is allowed to move on it.
-///
-///      Assets leave only to the vault that owns this adapter, and only in
-///      whole or in part of a position — there is no path that sends them
-///      anywhere else, which is what lets the vault's custody claim survive a
-///      second leg.
-contract BasketAdapter is Ownable {
+/// @dev Assets leave only to the vault that owns this adapter — there is no
+///      path that sends them anywhere else, which is what lets the vault's
+///      custody claim survive a second leg. Trading is restricted the same way:
+///      only the vault may trade, only into registered constituents, and only
+///      through the pool the owner fixed for each.
+contract BasketAdapter is Ownable, SwapExecutor {
     using SafeERC20 for IERC20;
 
     uint256 internal constant DENOMINATOR = 1e18;
@@ -39,6 +41,15 @@ contract BasketAdapter is Ownable {
     /// @notice The only address assets may be sent to.
     address public immutable vault;
 
+    /// @notice The vault's underlying asset, the other side of every swap.
+    address public immutable stable;
+
+    /// @notice The pool each constituent trades in, fixed by the owner.
+    /// @dev Routing is configuration, not an argument. If the caller could name
+    ///      the pool, a compromised caller could route through one it had just
+    ///      created and priced to its liking.
+    mapping(address token => PoolKey) public poolKeys;
+
     address[] public tokens;
     mapping(address token => Constituent) public constituents;
 
@@ -47,6 +58,9 @@ contract BasketAdapter is Ownable {
     event WeightUpdated(address indexed token, uint16 weightBps);
     event MultiplierAcknowledged(address indexed token, uint256 oldMultiplier, uint256 newMultiplier);
     event SentToVault(address indexed token, uint256 amount);
+    event PoolSet(address indexed token, address currency0, address currency1, uint24 fee, int24 tickSpacing);
+    event Bought(address indexed token, uint256 stableIn, uint256 received);
+    event Sold(address indexed token, uint256 amountIn, uint256 stableOut);
 
     error NotVault();
     error UnknownToken(address token);
@@ -54,15 +68,22 @@ contract BasketAdapter is Ownable {
     error WeightsExceedTotal(uint256 total);
     error MultiplierChanged(address token, uint256 acknowledged, uint256 current);
     error StillHoldingBalance(address token, uint256 balance);
+    error NoPool(address token);
+    error PoolAssetMismatch();
+    error InsufficientStable(uint256 have, uint256 want);
 
     modifier onlyVault() {
         if (msg.sender != vault) revert NotVault();
         _;
     }
 
-    constructor(address owner_, PriceOracle oracle_, address vault_) Ownable(owner_) {
+    constructor(address owner_, PriceOracle oracle_, address vault_, address stable_, IPoolManager poolManager_)
+        Ownable(owner_)
+        SwapExecutor(poolManager_)
+    {
         oracle = oracle_;
         vault = vault_;
+        stable = stable_;
     }
 
     // ---------------------------------------------------------------------
@@ -154,8 +175,67 @@ contract BasketAdapter is Ownable {
     }
 
     // ---------------------------------------------------------------------
+    // Trading
+    //
+    // Only the vault can trade, only into registered constituents, and only
+    // through the pool the owner fixed for each. `minOut` is supplied by the
+    // caller and enforced on the amount actually received.
+    // ---------------------------------------------------------------------
+
+    /// @notice Spend stablecoin already sitting here on `token`.
+    function buy(address token, uint256 stableIn, uint256 minOut) external onlyVault returns (uint256 received) {
+        if (!constituents[token].set) revert UnknownToken(token);
+        uint256 have = IERC20(stable).balanceOf(address(this));
+        if (have < stableIn) revert InsufficientStable(have, stableIn);
+
+        received = _swapVia(token, stable, stableIn, minOut);
+        emit Bought(token, stableIn, received);
+    }
+
+    /// @notice Sell `amountIn` of `token` and forward the proceeds to the vault.
+    function sell(address token, uint256 amountIn, uint256 minOut) external onlyVault returns (uint256 stableOut) {
+        if (!constituents[token].set) revert UnknownToken(token);
+
+        stableOut = _swapVia(token, token, amountIn, minOut);
+        IERC20(stable).safeTransfer(vault, stableOut);
+        emit Sold(token, amountIn, stableOut);
+    }
+
+    /// @notice Return stablecoin held here to the vault.
+    /// @dev Covers a `buy` that spent less than was sent over.
+    function sweepStableToVault() external onlyVault returns (uint256 amount) {
+        amount = IERC20(stable).balanceOf(address(this));
+        if (amount > 0) IERC20(stable).safeTransfer(vault, amount);
+    }
+
+    function _swapVia(address token, address inputToken, uint256 amountIn, uint256 minOut)
+        internal
+        returns (uint256)
+    {
+        PoolKey memory key = poolKeys[token];
+        if (Currency.unwrap(key.currency0) == address(0) && Currency.unwrap(key.currency1) == address(0)) {
+            revert NoPool(token);
+        }
+        bool zeroForOne = Currency.unwrap(key.currency0) == inputToken;
+        return _executeSwap(SwapRequest({key: key, zeroForOne: zeroForOne, amountIn: amountIn, minAmountOut: minOut}));
+    }
+
+    // ---------------------------------------------------------------------
     // Configuration
     // ---------------------------------------------------------------------
+
+    /// @dev Rejects a pool that is not exactly this token against the stable,
+    ///      so a mis-typed key cannot quietly point trading at another market.
+    function setPool(address token, PoolKey calldata key) external onlyOwner {
+        if (!constituents[token].set) revert UnknownToken(token);
+        address c0 = Currency.unwrap(key.currency0);
+        address c1 = Currency.unwrap(key.currency1);
+        bool pairMatches = (c0 == stable && c1 == token) || (c0 == token && c1 == stable);
+        if (!pairMatches) revert PoolAssetMismatch();
+
+        poolKeys[token] = key;
+        emit PoolSet(token, c0, c1, key.fee, key.tickSpacing);
+    }
 
     function addConstituent(address token, uint16 weightBps) external onlyOwner {
         if (constituents[token].set) revert AlreadyAdded(token);

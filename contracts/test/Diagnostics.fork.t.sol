@@ -17,7 +17,7 @@ contract DiagnosticsForkTest is Test {
     uint256 constant ONE = 1e6;
 
     function setUp() public {
-        vm.createSelectFork(vm.rpcUrl("robinhood"));
+        vm.createSelectFork(vm.envOr("ROBINHOOD_RPC", vm.rpcUrl("robinhood")));
         deal(address(usdg), depositor, 50_000 * ONE);
     }
 

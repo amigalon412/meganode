@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {BlurVault} from "../src/BlurVault.sol";
 import {BasketAdapter} from "../src/BasketAdapter.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PriceOracle} from "../src/PriceOracle.sol";
 import {MockERC20, MockYieldVault} from "./mocks/Mocks.sol";
 import {MockAggregator} from "./PriceOracle.t.sol";
@@ -35,7 +36,7 @@ contract TwoLegTest is Test {
         venue = new MockYieldVault(IERC20(address(usdg)), 700);
         oracle = new PriceOracle(owner);
         vault = new BlurVault(IERC20(address(usdg)), IERC4626(address(venue)), "BLUR Balanced", "blurBAL", owner);
-        basket = new BasketAdapter(owner, oracle, address(vault));
+        basket = new BasketAdapter(owner, oracle, address(vault), address(usdg), IPoolManager(address(0)));
 
         nvda = new MockStock("NVIDIA", "NVDA");
         nvdaFeed = new MockAggregator(8, "RHNVDA / USD", 200_00000000); // $200
@@ -189,7 +190,7 @@ contract TwoLegTest is Test {
         vault.deposit(100_000 * ONE, alice);
         _moveToBasket(40_000 * ONE, 200e18);
 
-        BasketAdapter other = new BasketAdapter(owner, oracle, address(vault));
+        BasketAdapter other = new BasketAdapter(owner, oracle, address(vault), address(usdg), IPoolManager(address(0)));
         vm.prank(owner);
         vm.expectRevert(BlurVault.BasketNotEmpty.selector);
         vault.setBasket(other, 6_000);

@@ -22,7 +22,7 @@ contract BlurVaultForkTest is Test {
     uint256 constant ONE = 1e6; // USDG has 6 decimals
 
     function setUp() public {
-        vm.createSelectFork(vm.rpcUrl("robinhood"));
+        vm.createSelectFork(vm.envOr("ROBINHOOD_RPC", vm.rpcUrl("robinhood")));
 
         vault = new BlurVault(usdg, steak, "BLUR Steady", "blurSTEADY", owner);
 

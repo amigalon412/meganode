@@ -32,6 +32,7 @@ curl -L https://foundry.paradigm.xyz | bash && foundryup
 cd contracts
 forge install foundry-rs/forge-std
 forge install OpenZeppelin/openzeppelin-contracts@v5.1.0
+forge install Uniswap/v4-core
 forge test
 ```
 
@@ -46,7 +47,15 @@ forge test
 | `BlurVault.fork.t.sol` | yes | Wiring against live Robinhood Chain, plus assertions that pin the current state of the lending venue. |
 | `Diagnostics.fork.t.sol` | yes | Non-asserting probes. Prints what the venue is actually doing. |
 
-Fork tests use the official RPC (`rpc.mainnet.chain.robinhood.com`). The
+Fork tests use the official RPC (`rpc.mainnet.chain.robinhood.com`), which
+rate-limits under load. Point them at a local fork instead when that happens:
+
+```bash
+anvil --fork-url https://rpc.mainnet.chain.robinhood.com &
+ROBINHOOD_RPC=http://localhost:8545 forge test
+```
+
+The
 publicnode endpoint rejects the archive reads forking needs, and Blockscout's
 JSON-RPC shim rejects forge's block parameter format — neither works here.
 
