@@ -1,11 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CaBar } from "@/components/CaBar";
 import { ConnectButton } from "@/components/ConnectButton";
 import { XIcon } from "@/components/icons";
 
 export function NavBar() {
   return (
-    <nav className="grid grid-cols-2 lg:grid-cols-3 items-center px-6 py-3 border-b border-wire-border sticky top-0 z-50 bg-black/85 backdrop-blur">
+    // The CA strip and the nav stick to the top as one unit, so the address
+    // stays reachable on every page without stacking two sticky offsets.
+    <header className="sticky top-0 z-50 bg-black/85 backdrop-blur">
+      <CaBar />
+      <nav className="grid grid-cols-2 lg:grid-cols-3 items-center px-6 py-3 border-b border-wire-border">
       <div className="flex items-center gap-3">
         <Image
           src="/images/logo.png"
@@ -56,6 +61,7 @@ export function NavBar() {
           className="flex items-center gap-2 border border-wire-cyan text-wire-cyan text-xs px-4 py-2 hover:bg-wire-cyan hover:text-black disabled:opacity-30 whitespace-nowrap"
         />
       </div>
-    </nav>
+      </nav>
+    </header>
   );
 }

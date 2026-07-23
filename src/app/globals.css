@@ -137,7 +137,7 @@
     font-family: var(--font-share-tech-mono), ui-monospace, monospace;
     -webkit-font-smoothing: none;
     scroll-behavior: smooth;
-    scroll-padding-top: 72px;
+    scroll-padding-top: 104px; /* nav height + the CA strip above it */
   }
   @media (prefers-reduced-motion: reduce) {
     html {

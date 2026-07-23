@@ -92,6 +92,13 @@ export const DEPLOYED_VAULTS = Object.entries(VAULT_ADDRESSES).filter(
   (entry): entry is [StrategyId, Address] => entry[1] !== null,
 );
 
+/**
+ * The $BLUR token, once it exists. Null until then, and the UI says so rather
+ * than showing a placeholder anyone could mistake for the real contract --
+ * before a launch a wrong "CA" is exactly what a scammer wants circulating.
+ */
+export const BLUR_TOKEN = optionalAddress(process.env.NEXT_PUBLIC_BLUR_TOKEN);
+
 /** True when no vault has been deployed yet, i.e. the app is display-only. */
 export const NOTHING_DEPLOYED = DEPLOYED_VAULTS.length === 0;
 
